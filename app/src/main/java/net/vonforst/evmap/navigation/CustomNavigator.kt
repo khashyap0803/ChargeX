@@ -34,11 +34,9 @@ class CustomNavigator(
         if (destination.destination == "report_new_charger") {
             val prefs = PreferenceDataSource(context)
             val url = when (prefs.dataSource) {
-                "goingelectric" -> "https://www.goingelectric.de/stromtankstellen/new/"
-                "nobil" -> "http://nobil.no/api/chargerregistration/chargerregistration.php?action=register"
                 "openchargemap" -> "https://openchargemap.org/site/poi/add"
                 "openstreetmap" -> "https://www.openstreetmap.org/edit"
-                else -> throw IllegalArgumentException()
+                else -> "https://openchargemap.org/site/poi/add"
             }
             launchCustomTab(url)
         }

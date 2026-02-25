@@ -1,35 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="shared_element_picture">picture</string>
-    <string name="github_link">https://github.com/ev-map/EVMap</string>
-    <string name="twitter_handle">\@ev_map</string>
-    <string name="twitter_url">https://twitter.com/ev_map</string>
-    <string name="mastodon_handle">\@evmap\@electroverse.tech</string>
-    <string name="mastodon_url">https://electroverse.tech/@evmap</string>
-    <string name="goingelectric_forum_url"><![CDATA[https://www.goingelectric.de/forum/viewtopic.php?f=5&t=56342]]></string>
-    <string name="tff_forum_url"><![CDATA[https://tff-forum.de/t/283834]]></string>
-    <string name="github_sponsors_link">https://github.com/sponsors/johan12345/</string>
-    <string name="fronyx_url">https://fronyx.io/</string>
-    <string name="website_url">https://ev-map.app</string>
+    <string name="github_link">https://github.com/chargex-india/ChargeX</string>
+    <string name="twitter_handle">\@chargex_india</string>
+    <string name="twitter_url">https://twitter.com/chargex_india</string>
+    <string name="mastodon_handle">\@chargex</string>
+    <string name="mastodon_url">https://mastodon.social/@chargex</string>
+    <string name="goingelectric_forum_url"><![CDATA[https://github.com/chargex-india/ChargeX/discussions]]></string>
+    <string name="tff_forum_url"><![CDATA[https://github.com/chargex-india/ChargeX/discussions]]></string>
+    <string name="github_sponsors_link">https://github.com/chargex-india/ChargeX</string>
+    <string name="fronyx_url">https://github.com/chargex-india/ChargeX</string>
+    <string name="website_url">https://chargex.india</string>
     <string name="about_contributors_list">
-        Danilo Bargen\n
-        Altonss\n
-        Allan Nordhøy\n
-        Maximilian Goldschmidt\n
-        Wim Lamotte\n
-        Licaon_Kter\n
-        Celso Azevedo\n
-        pt2121\n
-        nautilusx\n
-        Bobby Galati\n
-        programmin1\n
-        Jean-BaptisteC\n
-        Niklas Höher
+        ChargeX India Team
     </string>
     <string name="hide_on_scroll_fab_behavior">net.vonforst.evmap.ui.HideOnScrollFabBehavior</string>
-    <string name="paypal_link" translatable="false">https://paypal.me/johan98</string>
-    <string name="donate_link" translatable="false">https://ev-map.app/donate/</string>
-    <string name="copyright_summary">©2020–2024 Johan von Forstner and contributors</string>
+    <string name="paypal_link" translatable="false">https://chargex.india</string>
+    <string name="donate_link" translatable="false">https://chargex.india/donate/</string>
+    <string name="copyright_summary">©2025–2026 ChargeX India Team</string>
     <string name="acra_backend_url" translatable="false">https://acra.muc.vonforst.net/report</string>
     <string name="maplibre_attributionsDialogTitle">MapLibre Maps SDK for Android</string>
 </resources>

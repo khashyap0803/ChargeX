@@ -47,10 +47,7 @@ import net.vonforst.evmap.adapter.formatTeslaPricing
 import net.vonforst.evmap.api.availability.AvailabilityRepository
 import net.vonforst.evmap.api.availability.ChargeLocationStatus
 import net.vonforst.evmap.api.availability.tesla.Pricing
-import net.vonforst.evmap.api.chargeprice.ChargepriceApi
 import net.vonforst.evmap.api.createApi
-import net.vonforst.evmap.api.fronyx.PredictionData
-import net.vonforst.evmap.api.fronyx.PredictionRepository
 import net.vonforst.evmap.model.ChargeLocation
 import net.vonforst.evmap.model.Cost
 import net.vonforst.evmap.model.FaultReport
@@ -79,7 +76,9 @@ class ChargerDetailScreen(
     var charger: ChargeLocation? = null
     var photo: Bitmap? = null
     private var availability: ChargeLocationStatus? = null
-    private var prediction: PredictionData? = null
+    private var prediction: Map<Pair<java.time.ZonedDateTime, java.time.ZonedDateTime>, Double>? = null
+    private var predictionMaxValue: Double = 1.0
+    private var predictionIsPercentage: Boolean = true
     private var fronyxSupported = false
     private var teslaSupported = false
 
@@ -89,7 +88,6 @@ class ChargerDetailScreen(
         ChargeLocationsRepository(createApi(prefs.dataSource, ctx), lifecycleScope, db, prefs)
     private val availabilityRepo = AvailabilityRepository(ctx)
 
-    private val predictionRepo = PredictionRepository(ctx)
     private val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
 
     private val imageSize = 128  // images should be 128dp according to docs
@@ -133,37 +131,12 @@ class ChargerDetailScreen(
                             )
                             .setTitle(carContext.getString(R.string.navigate))
                             .setFlags(Action.FLAG_PRIMARY)
-                        .setBackgroundColor(CarColor.PRIMARY)
-                        .setOnClickListener {
-                            navigateToCharger(carContext, session.cas, charger)
-                        }
-                        .build())
-                        if (ChargepriceApi.isChargerSupported(charger)) {
-                            addAction(
-                                Action.Builder()
-                                    .setTitle(carContext.getString(R.string.auto_prices))
-                                .setOnClickListener {
-                                    if (!prefs.chargepriceRemoval2025DialogShown) {
-                                        screenManager.push(
-                                            TextDialogScreen(
-                                                carContext,
-                                                R.string.chargeprice_removal_2025_dialog_title,
-                                                R.string.chargeprice_removal_2025_dialog_detail
-                                            )
-                                        )
-                                        prefs.chargepriceRemoval2025DialogShown = true
-                                        return@setOnClickListener
-                                    }
-
-                                    val intent = Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse(ChargepriceApi.getPoiUrl(charger))
-                                    )
-                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    session.cas.startActivity(intent)
-                                }
-                                .build())
-                        }
+                            .setBackgroundColor(CarColor.PRIMARY)
+                            .setOnClickListener {
+                                navigateToCharger(carContext, session.cas, charger)
+                            }
+                            .build()
+                    )
                 } ?: setLoading(true)
             }.build()
         ).apply {
@@ -374,28 +347,8 @@ class ChargerDetailScreen(
     }
 
     private fun generatePredictionGraph(): CharSequence? {
-        val predictionData = prediction ?: return null
-        val graphData = predictionData.predictionGraph?.toList() ?: return null
-        val maxValue = predictionData.maxValue
-
-        val maxWidth = if (BuildConfig.FLAVOR_automotive == "automotive") 25 else 18
-        val step = maxOf(graphData.size.toFloat() / maxWidth, 1f)
-        val values = graphData.map { it.second }
-
-        val graph = buildGraph(values, step, maxValue, predictionData.isPercentage)
-
-        val measurer = TextMeasurer(carContext)
-        val width = measurer.measureText(graph)
-
-        val startTime = timeFormat.format(graphData[0].first)
-        val endTime = timeFormat.format(graphData.last().first)
-
-        val baseWidth = measurer.measureText(startTime + endTime)
-        val spaceWidth = measurer.measureText(" ")
-        val numSpaces = floor((width - baseWidth) / spaceWidth).toInt()
-        val legend = startTime + " ".repeat(numSpaces) + endTime
-
-        return graph + "\n" + legend
+        // ChargeX India: prediction service not available
+        return null
     }
 
     private fun buildGraph(
@@ -567,7 +520,8 @@ class ChargerDetailScreen(
 
                 invalidate()
 
-                prediction = predictionRepo.getPredictionData(charger, availability)
+                // ChargeX India: prediction service not available
+                prediction = null
 
                 invalidate()
             } else {

@@ -21,9 +21,6 @@ import net.vonforst.evmap.api.ChargepointApi
 import net.vonforst.evmap.api.ChargepointList
 import net.vonforst.evmap.api.FiltersSQLQuery
 import net.vonforst.evmap.api.StringProvider
-import net.vonforst.evmap.api.goingelectric.GEReferenceData
-import net.vonforst.evmap.api.goingelectric.GoingElectricApiWrapper
-import net.vonforst.evmap.api.nobil.NobilApiWrapper
 import net.vonforst.evmap.api.openchargemap.OpenChargeMapApiWrapper
 import net.vonforst.evmap.api.openstreetmap.OSMReferenceData
 import net.vonforst.evmap.api.openstreetmap.OpenStreetMapApiWrapper
@@ -191,19 +188,6 @@ class ChargeLocationsRepository(
 
     val referenceData = this.api.switchMap { api ->
         when (api) {
-            is GoingElectricApiWrapper -> {
-                GEReferenceDataRepository(
-                    api,
-                    scope,
-                    db.geReferenceDataDao(),
-                    prefs
-                ).getReferenceData()
-            }
-
-            is NobilApiWrapper -> {
-                NobilReferenceDataRepository(scope, prefs).getReferenceData()
-            }
-
             is OpenChargeMapApiWrapper -> {
                 OCMReferenceDataRepository(
                     api,
@@ -218,6 +202,7 @@ class ChargeLocationsRepository(
             }
 
             else -> {
+                // Default to OCM for ChargeX India
                 throw RuntimeException("no reference data implemented")
             }
         }
@@ -547,13 +532,8 @@ class ChargeLocationsRepository(
 
     val chargeCardMap by lazy {
         referenceData.map { refData: ReferenceData? ->
-            if (refData is GEReferenceData) {
-                refData.chargecards.associate {
-                    it.id to it.convert()
-                }
-            } else {
-                null
-            }
+            // ChargeX India: charge card mapping not used
+            emptyMap<Long, ChargeCard>()
         }
     }
 

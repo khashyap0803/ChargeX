@@ -51,7 +51,7 @@
 
         <Preference
             android:key="goingelectric"
-            android:title="@string/goingelectric_forum" />
+            android:title="@string/community_forum" />
 
         <Preference
             android:key="tffforum"

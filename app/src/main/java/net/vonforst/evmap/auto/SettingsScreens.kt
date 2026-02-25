@@ -449,8 +449,6 @@ class ChooseDataSourceScreen(
     }
     val descriptions = when (type) {
         Type.CHARGER_DATA_SOURCE -> listOf(
-            carContext.getString(R.string.data_source_goingelectric_desc),
-            carContext.getString(R.string.data_source_nobil_desc),
             carContext.getString(R.string.data_source_openchargemap_desc),
             carContext.getString(R.string.data_source_openstreetmap_desc)
         )
@@ -619,7 +617,7 @@ class AboutScreen(ctx: CarContext, val session: EVMapSession) : Screen(ctx) {
                 }
                 if (maxRows > 6) {
                     addItem(Row.Builder()
-                        .setTitle(carContext.getString(R.string.goingelectric_forum))
+                        .setTitle(carContext.getString(R.string.community_forum))
                         .setBrowsable(true)
                         .setOnClickListener(ParkedOnlyOnClickListener.create {
                             openUrl(

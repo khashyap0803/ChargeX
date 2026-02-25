@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">EVMap</string>
-    <string name="title_activity_maps">EVMap</string>
+    <string name="app_name">ChargeX</string>
+    <string name="title_activity_maps">ChargeX</string>
     <string name="connectors">Connectors</string>
     <string name="no_maps_app_found">Install a navigation app first</string>
     <string name="no_browser_app_found">Install a web browser first</string>
@@ -116,7 +116,8 @@
     <string name="pref_map_provider">Map provider</string>
     <string name="twitter">Twitter</string>
     <string name="mastodon">Mastodon</string>
-    <string name="goingelectric_forum">Forum thread at GoingElectric.de</string>
+    <string name="goingelectric_forum">Community Forum</string>
+    <string name="community_forum">Community Forum</string>
     <string name="tff_forum">Forum thread at TFF-Forum.de</string>
     <string name="contact">Contact</string>
     <string name="menu_report_new_charger">New charger</string>
@@ -160,15 +161,15 @@
     <string name="save_profile_enter_name">Enter the name of the filter profile:</string>
     <string name="filterprofile_name_not_unique">There is already a filter profile with that name</string>
     <string name="filterprofiles_empty_state">You have no filter profiles saved</string>
-    <string name="welcome_to_evmap">Welcome to EVMap</string>
-    <string name="welcome_1">Find electric vehicle chargers around you</string>
+    <string name="welcome_to_evmap">Welcome to ChargeX</string>
+    <string name="welcome_1">Find EV charging stations across India</string>
     <string name="welcome_2_title">You\'ve got the power</string>
     <string name="welcome_2">Each charger\'s color corresponds to its max charging power</string>
     <string name="welcome_2_detail">This can also be seen in “About” → “Frequently Asked Questions”</string>
-    <string name="donation_dialog_title">Thank you for using EVMap</string>
-    <string name="donation_dialog_detail">EVMap is open source and free of charge. Code contributions on GitHub are much appreciated. To help cover the running costs for data access, please consider donating an amount of your choice to the developer.</string>
+    <string name="donation_dialog_title">Thank you for using ChargeX</string>
+    <string name="donation_dialog_detail">ChargeX helps you find the best EV charging stations across India with smart range filtering and wait time predictions.</string>
     <string name="chargeprice_donation_dialog_title">You\'re a real bargain hunter!</string>
-    <string name="chargeprice_donation_dialog_detail">You make great use of the price comparison feature. Please help cover the costs for this data by supporting EVMap with a donation.</string>
+    <string name="chargeprice_donation_dialog_detail">You make great use of the price comparison feature. Please help cover the costs for this data by supporting ChargeX.</string>
     <string name="deleted_item">Deleted “%s”</string>
     <string name="undo">Undo</string>
     <string name="rename">Rename</string>
@@ -186,7 +187,7 @@
     <string name="charge_price_minute_format">%2$s%1$.2f/min</string>
     <string name="chargeprice_select_connector">Choose connector</string>
     <string name="chargeprice_provider_customer_tariff">Only for tie-in customers</string>
-    <string name="edit_on_goingelectric_info">Please log in at GoingElectric.de if this page is empty</string>
+    <string name="edit_on_goingelectric_info">Please log in at the data source website if this page is empty</string>
     <string name="percent_format">%.0f%%</string>
     <string name="chargeprice_session_fee">session fee</string>
     <string name="chargeprice_per_kwh">per kWh</string>
@@ -227,27 +228,27 @@
         <item quantity="other">%d plans selected</item>
     </plurals>
     <string name="unknown_operator">Unknown operator</string>
-    <string name="data_sources_description">Please pick a data source for charging stations. It can later be changed in the app settings.</string>
+    <string name="data_sources_description">ChargeX uses Open Charge Map for Indian charging station data.</string>
     <string name="data_source_goingelectric">GoingElectric.de</string>
     <string name="data_source_nobil">NOBIL</string>
     <string name="data_source_openstreetmap">OpenStreetMap</string>
     <string name="data_source_openchargemap">Open Charge Map</string>
-    <string name="data_source_goingelectric_desc">Great in the German-speaking countries. Descriptions in German. Community-maintained.</string>
-    <string name="data_source_nobil_desc"><![CDATA[Open government and community provided data in Sweden and Norway.]]></string>
-    <string name="data_source_openchargemap_desc"><![CDATA[Worldwide, with varying quality. Descriptions in English or the local language. Community-maintained and open government data in some countries (e.g. North America, UK, France, Norway).]]></string>
-    <string name="data_source_openstreetmap_desc">Experimental support in EVMap, not all features available.</string>
+    <string name="data_source_goingelectric_desc">Not available for India</string>
+    <string name="data_source_nobil_desc">Not available for India</string>
+    <string name="data_source_openchargemap_desc"><![CDATA[Community-maintained charging station data covering India including Hyderabad, Delhi, Mumbai, Bangalore, and more.]]></string>
+    <string name="data_source_openstreetmap_desc">Community-maintained map data with charging station information.</string>
     <string name="next">next</string>
     <string name="get_started">Get started</string>
     <string name="got_it">Got it</string>
     <string name="lets_go">Let\'s go</string>
-    <string name="crash_report_text">EVMap crashed. Please send a crash report to the developer.</string>
+    <string name="crash_report_text">ChargeX crashed. Please send a crash report to the developer.</string>
     <string name="crash_report_comment_prompt">You can add a comment below:</string>
     <string name="powered_by_mapbox">powered by Mapbox</string>
     <string name="pref_search_provider">Search provider</string>
     <string name="pref_search_provider_info"><![CDATA[Data for searches is expensive to fetch, especially from Google Maps. Please consider donating through “About” → “Donate”.]]></string>
     <string name="github_sponsors">GitHub Sponsors</string>
-    <string name="donate_desc">Support EVMap\'s development with a one-time donation</string>
-    <string name="github_sponsors_desc">Support EVMap on GitHub Sponsors</string>
+    <string name="donate_desc">Support ChargeX\'s development</string>
+    <string name="github_sponsors_desc">Support ChargeX on GitHub</string>
     <string name="unnamed_filter_profile">Unnamed filter profile</string>
     <string name="privacy_link">https://ev-map.app/privacypolicy/</string>
     <string name="faq_link">https://ev-map.app/faq/</string>
@@ -275,7 +276,7 @@
     <string name="pref_provider_osm">OpenStreetMap</string>
     <string name="pref_provider_osm_mapbox">OpenStreetMap (Mapbox)</string>
     <string name="about_contributors">Contributors</string>
-    <string name="about_contributors_text">Thanks to all contributors for their coding and translation contributions to EVMap:</string>
+    <string name="about_contributors_text">Thanks to all contributors for their contributions to ChargeX:</string>
     <string name="utilization_prediction">Utilization prediction</string>
     <string name="powered_by_fronyx">powered by fronyx</string>
     <string name="prediction_help">The prediction is based on factors like day of the week, time of day and past usage, so that you can avoid overcrowded chargers. No guarantee.</string>
@@ -285,12 +286,12 @@
         <item quantity="other">%1$d/%2$d available</item>
     </plurals>
     <string name="pref_prediction_enabled">Show utilization predictions</string>
-    <string name="pref_prediction_enabled_summary">for supported chargers\n(currently only DC in Germany)</string>
+    <string name="pref_prediction_enabled_summary">for supported chargers in India</string>
     <string name="prediction_only">(%s only)</string>
     <string name="prediction_dc_plugs_only">DC plugs</string>
     <string name="data_source_switched_to">Data source switched to %s</string>
     <string name="pref_applink_associate">Open supported links</string>
-    <string name="pref_applink_associate_summary">from goingelectric.de and openchargemap.org</string>
+    <string name="pref_applink_associate_summary">from openchargemap.org</string>
     <string name="chargeprice_header_my_tariffs">My plans</string>
     <string name="chargeprice_header_other_tariffs">Other plans</string>
     <string name="developer_mode_enabled">Developer mode enabled</string>
@@ -329,13 +330,13 @@
     <string name="settings_cache_clear">Clear cache</string>
     <string name="settings_cache_clear_summary">Deletes all cached chargers except favorites</string>
     <string name="settings_cache_count_summary">%1$d chargers cached, %2$.1f MB</string>
-    <string name="auto_location_service">EVMap is running on Android Auto and using your location.</string>
+    <string name="auto_location_service">ChargeX is running on Android Auto and using your location.</string>
     <string name="auto_no_chargers_found">No nearby chargers found</string>
     <string name="auto_no_favorites_found">No favorites found</string>
     <string name="open_in_app">Open in app</string>
     <string name="opened_on_phone">Opened on phone</string>
-    <string name="auto_location_permission_needed">To run EVMap on Android Auto, you need to grant access to your location.</string>
-    <string name="auto_vehicle_data_permission_needed">For this feature, EVMap needs access to your vehicle data.</string>
+    <string name="auto_location_permission_needed">To run ChargeX on Android Auto, you need to grant access to your location.</string>
+    <string name="auto_vehicle_data_permission_needed">For this feature, ChargeX needs access to your vehicle data.</string>
     <string name="grant_on_phone">Grant on phone</string>
     <string name="auto_chargers_closeby">Nearby chargers</string>
     <string name="auto_favorites">Favorites</string>
@@ -351,9 +352,9 @@
     <string name="auto_heading">Heading</string>
     <string name="auto_settings">Settings</string>
     <string name="welcome_android_auto">Android Auto support</string>
-    <string name="welcome_android_auto_detail">You can also use EVMap from within Android Auto on supported cars. Simply select the EVMap app in the Android Auto menu.</string>
+    <string name="welcome_android_auto_detail">You can also use ChargeX from within Android Auto on supported cars. Simply select the ChargeX app in the Android Auto menu.</string>
     <string name="sounds_cool">Sounds cool</string>
-    <string name="auto_chargeprice_vehicle_unavailable">EVMap could not determine your vehicle model.</string>
+    <string name="auto_chargeprice_vehicle_unavailable">ChargeX could not determine your vehicle model.</string>
     <string name="auto_chargeprice_vehicle_unknown">None of the vehicles selected in the app matches this vehicle (%1$s %2$s).</string>
     <string name="auto_chargeprice_vehicle_ambiguous">Multiple vehicles selected in the app match this vehicle (%1$s %2$s).</string>
     <string name="auto_chargers_ahead">Only chargers along driving direction</string>
@@ -364,7 +365,7 @@
     <string name="auto_multipage_goto">Page %d</string>
     <string name="auto_multipage">(%1$d/%2$d)</string>
     <string name="reload">Reload</string>
-    <string name="accept_privacy"><![CDATA[I have read and accepted EVMap\'s <a href=\"%s\">privacy policy</a>.]]></string>
+    <string name="accept_privacy"><![CDATA[I have read and accepted ChargeX\'s <a href=\"%s\">privacy policy</a>.]]></string>
     <string name="referrals">Referral links</string>
     <string name="referrals_info">You can also use one of the referral links below to support the developer with your purchase.</string>
     <string name="referral_tesla">Tesla</string>
@@ -378,9 +379,9 @@
     <string name="status_unknown">Status Unknown</string>
     <string name="status_since">%1$s since %2$s</string>
     <string name="charger_name">Charger name</string>
-    <string name="pref_chargeprice_native_integration">Price comparison within EVMap</string>
-    <string name="pref_chargeprice_native_integration_on">Pricing data will be shown directly in EVMap</string>
-    <string name="pref_chargeprice_native_integration_off">Price comparison button will refer to the Chargeprice app or website</string>
+    <string name="pref_chargeprice_native_integration">Price comparison within ChargeX</string>
+    <string name="pref_chargeprice_native_integration_on">Pricing data will be shown directly in ChargeX</string>
+    <string name="pref_chargeprice_native_integration_off">Price comparison button will refer to external pricing website</string>
     <string name="auto_zoom_for_details">Zoom in to see details</string>
     <string name="accessibility_public">Public</string>
     <string name="accessibility_visitors">Visitors</string>

@@ -11,39 +11,22 @@
         <item>off</item>
     </string-array>
     <string-array name="pref_chargeprice_currencies" translatable="false">
-        <item>CHF</item>
-        <item>CZK</item>
-        <item>DKK</item>
-        <item>EUR</item>
-        <item>GBP</item>
-        <item>HRK</item>
-        <item>HUF</item>
-        <item>ISK</item>
-        <item>NOK</item>
-        <item>PLN</item>
-        <item>SEK</item>
-        <item>USD</item>
+        <item>INR</item>
     </string-array>
     <string-array name="pref_data_source_names">
-        <item>@string/data_source_goingelectric</item>
-        <item>@string/data_source_nobil</item>
         <item>@string/data_source_openchargemap</item>
         <item>@string/data_source_openstreetmap</item>
     </string-array>
-    <string-array name="pref_data_source_values" tranlatable="false">
-        <item>goingelectric</item>
-        <item>nobil</item>
+    <string-array name="pref_data_source_values" translatable="false">
         <item>openchargemap</item>
         <item>openstreetmap</item>
     </string-array>
     <string-array name="pref_units_names">
         <item>@string/pref_units_default</item>
         <item>@string/pref_units_metric</item>
-        <item>@string/pref_units_imperial</item>
     </string-array>
     <string-array name="pref_units_values" translatable="false">
         <item>default</item>
         <item>metric</item>
-        <item>imperial</item>
     </string-array>
 </resources>

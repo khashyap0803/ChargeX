@@ -36,7 +36,7 @@ class PreferenceDataSource(val context: Context) {
     }
 
     var dataSource: String
-        get() = sp.getString("data_source", "goingelectric")!!
+        get() = sp.getString("data_source", "openchargemap")!!
         set(value) {
             sp.edit().putString("data_source", value).apply()
         }
@@ -60,9 +60,9 @@ class PreferenceDataSource(val context: Context) {
         }
 
     var lastGeReferenceDataUpdate: Instant
-        get() = Instant.ofEpochMilli(sp.getLong("last_ge_reference_data_update", 0L))
+        get() = Instant.EPOCH
         set(value) {
-            sp.edit().putLong("last_ge_reference_data_update", value.toEpochMilli()).apply()
+            // No-op: GE data source removed for ChargeX India
         }
 
     var lastOcmReferenceDataUpdate: Instant
@@ -227,7 +227,7 @@ class PreferenceDataSource(val context: Context) {
         get() = sp.getString("units", null) ?: "default"
 
     var currentMapLocation: LatLng
-        get() = sp.getLatLng("current_map_location") ?: LatLng(50.113388, 9.252536)
+        get() = sp.getLatLng("current_map_location") ?: LatLng(17.385044, 78.486671)
         set(value) {
             sp.edit().putLatLng("current_map_location", value).apply()
         }

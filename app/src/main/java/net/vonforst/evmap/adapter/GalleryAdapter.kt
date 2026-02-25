@@ -24,7 +24,7 @@ class GalleryAdapter(context: Context, val itemClickListener: ItemClickListener?
         fun onItemClick(view: View, position: Int, imageCacheKey: MemoryCache.Key?)
     }
 
-    val apikey = context.getString(R.string.goingelectric_key)
+    // ChargeX India: no GoingElectric API key needed
     var loaded = false
     val memoryKeys = HashMap<String, MemoryCache.Key?>()
 

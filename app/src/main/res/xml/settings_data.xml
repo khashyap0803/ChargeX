@@ -7,7 +7,7 @@
             android:title="@string/pref_data_source"
             android:entries="@array/pref_data_source_names"
             android:entryValues="@array/pref_data_source_values"
-            android:defaultValue="goingelectric"
+            android:defaultValue="openchargemap"
             app:useSimpleSummaryProvider="true" />
 
         <!--<CheckBoxPreference

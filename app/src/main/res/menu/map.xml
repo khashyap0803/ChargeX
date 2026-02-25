@@ -10,6 +10,12 @@
         app:actionLayout="@layout/action_filter" />
 
     <item
+        android:id="@+id/menu_vehicle"
+        android:title="My Vehicle"
+        android:icon="@drawable/ic_car"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/menu_reload"
         android:title="@string/reload" />
 </menu>

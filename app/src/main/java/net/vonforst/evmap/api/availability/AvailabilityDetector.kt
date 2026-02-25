@@ -172,12 +172,8 @@ class AvailabilityRepository(context: Context) {
     private val teslaOwnerAvailabilityDetector =
         TeslaOwnerAvailabilityDetector(okhttp, EncryptedPreferenceDataStore(context))
     private val availabilityDetectors = listOf(
-        RheinenergieAvailabilityDetector(okhttp),
         teslaOwnerAvailabilityDetector,
-        TeslaGuestAvailabilityDetector(okhttp),
-        NobilAvailabilityDetector(okhttp, context),
-        EnBwAvailabilityDetector(okhttp),
-        NewMotionAvailabilityDetector(okhttp)
+        TeslaGuestAvailabilityDetector(okhttp)
     )
 
     suspend fun getAvailability(charger: ChargeLocation): Resource<ChargeLocationStatus> {

@@ -220,14 +220,10 @@ class DataSourceSelectFragment : OnboardingPageFragment() {
 
     val animatedItems
         get() = listOf(
-            binding.rgDataSource.rbGoingElectric,
-            binding.rgDataSource.textView27,
             binding.rgDataSource.rbOpenChargeMap,
             binding.rgDataSource.textView28,
             binding.rgDataSource.rbOpenStreetMap,
             binding.rgDataSource.textView29,
-            binding.rgDataSource.rbNobil,
-            binding.rgDataSource.textView30,
             binding.dataSourceHint,
             binding.cbAcceptPrivacy
         )
@@ -256,8 +252,6 @@ class DataSourceSelectFragment : OnboardingPageFragment() {
         binding.btnGetStarted.visibility = View.INVISIBLE
 
         for (rb in listOf(
-            binding.rgDataSource.rbGoingElectric,
-            binding.rgDataSource.rbNobil,
             binding.rgDataSource.rbOpenChargeMap,
             binding.rgDataSource.rbOpenStreetMap
         )) {
@@ -272,8 +266,6 @@ class DataSourceSelectFragment : OnboardingPageFragment() {
         }
         if (prefs.dataSourceSet) {
             when (prefs.dataSource) {
-                "goingelectric" -> binding.rgDataSource.rbGoingElectric.isChecked = true
-                "nobil" -> binding.rgDataSource.rbNobil.isChecked = true
                 "openchargemap" -> binding.rgDataSource.rbOpenChargeMap.isChecked = true
                 "openstreetmap" -> binding.rgDataSource.rbOpenStreetMap.isChecked = true
             }
@@ -290,11 +282,7 @@ class DataSourceSelectFragment : OnboardingPageFragment() {
                 return@setOnClickListener
             }
 
-            val result = if (binding.rgDataSource.rbGoingElectric.isChecked) {
-                "goingelectric"
-            } else if (binding.rgDataSource.rbNobil.isChecked) {
-                "nobil"
-            } else if (binding.rgDataSource.rbOpenChargeMap.isChecked) {
+            val result = if (binding.rgDataSource.rbOpenChargeMap.isChecked) {
                 "openchargemap"
             } else if (binding.rgDataSource.rbOpenStreetMap.isChecked) {
                 "openstreetmap"

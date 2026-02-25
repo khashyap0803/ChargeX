@@ -24,9 +24,6 @@ import net.vonforst.evmap.api.availability.AvailabilityRepository
 import net.vonforst.evmap.api.availability.ChargeLocationStatus
 import net.vonforst.evmap.api.availability.tesla.Pricing
 import net.vonforst.evmap.api.createApi
-import net.vonforst.evmap.api.fronyx.PredictionData
-import net.vonforst.evmap.api.fronyx.PredictionRepository
-import net.vonforst.evmap.api.goingelectric.GEChargepoint
 import net.vonforst.evmap.api.openchargemap.OCMConnection
 import net.vonforst.evmap.api.openchargemap.OCMReferenceData
 import net.vonforst.evmap.api.stringProvider
@@ -264,14 +261,7 @@ class MapViewModel(application: Application, private val state: SavedStateHandle
         it.data?.extraData as? Pricing
     }
 
-    private val predictionRepository = PredictionRepository(application)
 
-    val predictionData: LiveData<PredictionData> = availability.switchMap { av ->
-        liveData {
-            val charger = charger.value?.data ?: return@liveData
-            emit(predictionRepository.getPredictionData(charger, av.data, filteredConnectors.value))
-        }
-    }
 
     val myLocationEnabled: MutableLiveData<Boolean> by lazy {
         MutableLiveData<Boolean>()
@@ -426,21 +416,6 @@ class MapViewModel(application: Application, private val state: SavedStateHandle
             chargepoints.addSource(result) {
                 val apiId = apiId.value
                 when (apiId) {
-                    "goingelectric" -> {
-                        val chargeCardsVal =
-                            filters.getMultipleChoiceValue("chargecards") ?: return@addSource
-                        filteredChargeCards.value =
-                            if (chargeCardsVal.all) null else chargeCardsVal.values.map { it.toLong() }
-                                .toSet()
-
-                        val connectorsVal = filters.getMultipleChoiceValue("connectors")!!
-                        filteredConnectors.value =
-                            if (connectorsVal.all) null else connectorsVal.values.map {
-                                GEChargepoint.convertTypeFromGE(it)
-                            }.toSet()
-                        filteredMinPower.value = filters.getSliderValue("min_power")
-                    }
-
                     "openchargemap" -> {
                         val connectorsVal = filters.getMultipleChoiceValue("connectors")!!
                         filteredConnectors.value =

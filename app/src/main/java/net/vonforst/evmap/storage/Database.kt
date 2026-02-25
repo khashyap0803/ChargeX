@@ -13,6 +13,8 @@ import co.anbora.labs.spatia.builder.SpatiaRoom
 import co.anbora.labs.spatia.geometry.GeometryConverters
 import net.vonforst.evmap.api.goingelectric.GEChargeCard
 import net.vonforst.evmap.api.goingelectric.GEChargepoint
+import net.vonforst.evmap.api.goingelectric.GENetwork
+import net.vonforst.evmap.api.goingelectric.GEPlug
 import net.vonforst.evmap.api.openchargemap.OCMConnectionType
 import net.vonforst.evmap.api.openchargemap.OCMCountry
 import net.vonforst.evmap.api.openchargemap.OCMOperator

@@ -1,6 +1,5 @@
 package net.vonforst.evmap
 
-import net.vonforst.evmap.api.goingelectric.GoingElectricApiTest
 import okhttp3.mockwebserver.MockResponse
 import java.net.HttpURLConnection
 
@@ -13,4 +12,4 @@ fun okResponse(file: String): MockResponse {
 }
 
 private fun readResource(s: String) =
-    GoingElectricApiTest::class.java.getResource(s)?.readText()
+    object {}::class.java.getResource(s)?.readText()

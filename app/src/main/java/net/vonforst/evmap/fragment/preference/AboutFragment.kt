@@ -149,7 +149,7 @@ class AboutFragment : PreferenceFragmentCompat() {
             }
             "goingelectric" -> {
                 (activity as? MapsActivity)?.openUrl(
-                    getString(R.string.goingelectric_forum_url),
+                    getString(R.string.goingelectric_forum_url),  // now points to ChargeX community
                     requireView()
                 )
                 true

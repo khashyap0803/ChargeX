@@ -86,7 +86,6 @@ import net.vonforst.evmap.adapter.ConnectorAdapter
 import net.vonforst.evmap.adapter.DetailsAdapter
 import net.vonforst.evmap.adapter.GalleryAdapter
 import net.vonforst.evmap.adapter.PlaceAutocompleteAdapter
-import net.vonforst.evmap.api.chargeprice.ChargepriceApi
 import net.vonforst.evmap.autocomplete.ApiUnavailableException
 import net.vonforst.evmap.autocomplete.PlaceWithBounds
 import net.vonforst.evmap.bold
@@ -141,7 +140,7 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
     private var mapBottomPadding: Int = 0
     private var popupMenu: PopupMenu? = null
     private var insetBottom: Int = 0
-    private lateinit var favToggle: MenuItem
+    private var favToggle: MenuItem? = null
     private val backPressedCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
             val value = vm.layersMenuOpen.value
@@ -394,6 +393,33 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
                 closeConnectorDetailsDialog()
                 vm.selectedChargepoint.value = null
             }
+
+        // Observe range filter result from VehicleInputFragment
+        findNavController().currentBackStackEntry?.savedStateHandle
+            ?.getLiveData<Float>("range_filter_km")
+            ?.observe(viewLifecycleOwner) { rangeKm ->
+                if (rangeKm > 0) {
+                    com.google.android.material.snackbar.Snackbar.make(
+                        binding.root,
+                        "Range filter: %.0f km — out-of-range stations dimmed".format(rangeKm),
+                        com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                    ).show()
+                    // Apply range filter to marker rendering
+                    markerManager?.rangeFilterKm = rangeKm
+                    vm.location.value?.let { loc ->
+                        markerManager?.userLocation =
+                            com.car2go.maps.model.LatLng(loc.latitude, loc.longitude)
+                    }
+                } else if (rangeKm < 0) {
+                    com.google.android.material.snackbar.Snackbar.make(
+                        binding.root,
+                        "Range filter cleared",
+                        com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+                    ).show()
+                    markerManager?.rangeFilterKm = 0f
+                    markerManager?.userLocation = null
+                }
+            }
     }
 
     override fun onResume() {
@@ -429,7 +455,14 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
             val charger = vm.charger.value?.data
             if (charger != null) {
                 if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
-                    (requireActivity() as MapsActivity).navigateTo(charger, binding.root)
+                    val coord = charger.coordinates
+                    findNavController().safeNavigate(
+                        MapFragmentDirections.actionMapToNavigation(
+                            destLat = coord.lat.toFloat(),
+                            destLng = coord.lng.toFloat(),
+                            stationName = charger.name ?: "Charging Station"
+                        )
+                    )
                 }
             }
         }
@@ -445,31 +478,6 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
                 (activity as? MapsActivity)?.openUrl(charger.url ?: charger.dataSourceUrl, binding.root, true)
             }
         }
-        binding.detailView.btnChargeprice.setOnClickListener {
-            val charger = vm.charger.value?.data ?: return@setOnClickListener
-
-            if (prefs.chargepriceCounter > 0 && !prefs.chargepriceRemoval2025DialogShown) {
-                // user has been using the native Chargeprice integration before
-                MaterialAlertDialogBuilder(requireContext())
-                    .setTitle(R.string.chargeprice_removal_2025_dialog_title)
-                    .setMessage(R.string.chargeprice_removal_2025_dialog_detail)
-                    .setPositiveButton(R.string.ok) { di, _ ->
-                        di.cancel()
-                        prefs.chargepriceRemoval2025DialogShown = true
-                        (activity as? MapsActivity)?.openUrl(
-                            ChargepriceApi.getPoiUrl(charger),
-                            binding.root
-                        )
-                    }
-                    .show()
-                return@setOnClickListener
-            }
-
-            (activity as? MapsActivity)?.openUrl(
-                ChargepriceApi.getPoiUrl(charger),
-                binding.root
-            )
-        }
         binding.detailView.btnChargerWebsite.setOnClickListener {
             val charger = vm.charger.value?.data ?: return@setOnClickListener
             charger.chargerUrl?.let { (activity as? MapsActivity)?.openUrl(it, binding.root) }
@@ -478,15 +486,6 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
             findNavController().safeNavigate(
                 MapFragmentDirections.actionMapToDataSettings(true)
             )
-        }
-        binding.detailView.imgPredictionSource.setOnClickListener {
-            (activity as? MapsActivity)?.openUrl(getString(R.string.fronyx_url), binding.root)
-        }
-        binding.detailView.btnPredictionHelp.setOnClickListener {
-            MaterialAlertDialogBuilder(requireContext())
-                .setMessage(getString(R.string.prediction_help))
-                .setPositiveButton(R.string.ok) { _, _ -> }
-                .show()
         }
         binding.detailView.topPart.setOnClickListener {
             bottomSheetBehavior.state = STATE_ANCHOR_POINT
@@ -532,18 +531,8 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
                                     Toast.LENGTH_LONG
                                 ).show()
                             }
-                        }
-                        else {
+                        } else {
                             (activity as? MapsActivity)?.openUrl(charger.editUrl, binding.root, true)
-                        }
-
-                        if (vm.apiId.value == "goingelectric") {
-                            // instructions specific to GoingElectric
-                            Toast.makeText(
-                                requireContext(),
-                                R.string.edit_on_goingelectric_info,
-                                Toast.LENGTH_LONG
-                            ).show()
                         }
                     }
                     true
@@ -830,9 +819,9 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
         val favs = vm.favorites.value ?: return
         val charger = vm.chargerSparse.value ?: return
         if (favs.find { it.charger.id == charger.id } != null) {
-            favToggle.setIcon(R.drawable.ic_fav)
+            favToggle?.setIcon(R.drawable.ic_fav)
         } else {
-            favToggle.setIcon(R.drawable.ic_fav_no)
+            favToggle?.setIcon(R.drawable.ic_fav_no)
         }
     }
 
@@ -1405,6 +1394,15 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
             true
         }
 
+        R.id.menu_vehicle -> {
+            if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                findNavController().safeNavigate(
+                    MapFragmentDirections.actionMapToVehicleInput()
+                )
+            }
+            true
+        }
+
         else -> false
     }
 
@@ -1442,6 +1440,11 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
             vm.location.value = latLng
             val camUpdate = map.cameraUpdateFactory.newLatLng(latLng)
             map.animateCamera(camUpdate)
+            // Keep range filter location in sync
+            if ((markerManager?.rangeFilterKm ?: 0f) > 0f) {
+                markerManager?.userLocation =
+                    com.car2go.maps.model.LatLng(latLng.latitude, latLng.longitude)
+            }
         }
     }
 
@@ -1468,5 +1471,6 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
         /* if we don't dismiss the popup menu, it will be recreated in some cases
         (split-screen mode) and then have references to a destroyed fragment. */
         popupMenu?.dismiss()
+        favToggle = null
     }
 }

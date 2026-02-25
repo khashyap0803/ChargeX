@@ -6,7 +6,7 @@ plugins {
     id("kotlin-android")
     id("kotlin-parcelize")
     id("kotlin-kapt")
-    id("com.google.devtools.ksp").version("2.0.21-1.0.28")
+    id("com.google.devtools.ksp").version("2.2.10-2.0.2")
     id("androidx.navigation.safeargs.kotlin")
     id("com.mikepenz.aboutlibraries.plugin")
 }
@@ -16,13 +16,13 @@ android {
     useLibrary("android.car")
 
     defaultConfig {
-        applicationId = "net.vonforst.evmap"
+        applicationId = "com.chargex.india"
         compileSdk = 36
         minSdk = 23
         targetSdk = 36
         // NOTE: always increase versionCode by 2 since automotive flavor uses versionCode + 1
-        versionCode = 270
-        versionName = "2.1.0"
+        versionCode = 1
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -174,6 +174,10 @@ android {
                 ?.toString()
         if (googleMapsKey != null && flavorName.startsWith("google")) {
             resValue("string", "google_maps_key", googleMapsKey)
+        }
+        // Directions API key is needed for ALL flavors (route calculation)
+        if (googleMapsKey != null) {
+            resValue("string", "google_directions_key", googleMapsKey)
         }
         var mapboxKey =
             System.getenv("MAPBOX_API_KEY") ?: project.findProperty("MAPBOX_API_KEY")?.toString()

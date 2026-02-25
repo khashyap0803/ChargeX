@@ -136,26 +136,6 @@ class MapsActivity : AppCompatActivity(),
                     .setArguments(MapFragmentArgs(locationName = query).toBundle())
                     .createPendingIntent()
             }
-        } else if (intent?.scheme == "https" && intent?.data?.host == "www.goingelectric.de") {
-            val id = intent.data?.pathSegments?.lastOrNull()?.toLongOrNull()
-            if (id != null) {
-                if (prefs.dataSource != "goingelectric") {
-                    prefs.dataSource = "goingelectric"
-                    Toast.makeText(
-                        this,
-                        getString(
-                            R.string.data_source_switched_to,
-                            getString(R.string.data_source_goingelectric)
-                        ),
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-                deepLink = navController.createDeepLink()
-                    .setGraph(R.navigation.nav_graph)
-                    .setDestination(R.id.map)
-                    .setArguments(MapFragmentArgs(chargerId = id).toBundle())
-                    .createPendingIntent()
-            }
         } else if (intent?.scheme == "https" && intent?.data?.host in listOf(
                 "openchargemap.org",
                 "map.openchargemap.io"

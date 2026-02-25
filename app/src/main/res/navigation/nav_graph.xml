@@ -33,6 +33,20 @@
             <action
                 android:id="@+id/action_map_to_data_settings"
                 app:destination="@id/settings_data" />
+            <action
+                android:id="@+id/action_map_to_navigation"
+                app:destination="@id/navigation_frag"
+                app:enterAnim="@animator/nav_default_enter_anim"
+                app:exitAnim="@animator/nav_default_exit_anim"
+                app:popEnterAnim="@animator/nav_default_pop_enter_anim"
+                app:popExitAnim="@animator/nav_default_pop_exit_anim" />
+            <action
+                android:id="@+id/action_map_to_vehicle_input"
+                app:destination="@id/vehicle_input_frag"
+                app:enterAnim="@animator/nav_default_enter_anim"
+                app:exitAnim="@animator/nav_default_exit_anim"
+                app:popEnterAnim="@animator/nav_default_pop_enter_anim"
+                app:popExitAnim="@animator/nav_default_pop_exit_anim" />
             <argument
                 android:name="locationName"
                 android:defaultValue="@null"
@@ -161,4 +175,24 @@
             app:argType="string"
             app:nullable="true" />
     </fragment>
+    <fragment
+        android:id="@+id/navigation_frag"
+        android:name="net.vonforst.evmap.fragment.NavigationFragment"
+        android:label="Navigation"
+        tools:layout="@layout/fragment_navigation">
+        <argument
+            android:name="destLat"
+            app:argType="float" />
+        <argument
+            android:name="destLng"
+            app:argType="float" />
+        <argument
+            android:name="stationName"
+            app:argType="string" />
+    </fragment>
+    <fragment
+        android:id="@+id/vehicle_input_frag"
+        android:name="net.vonforst.evmap.fragment.VehicleInputFragment"
+        android:label="Vehicle Profile"
+        tools:layout="@layout/fragment_vehicle_input" />
 </navigation>

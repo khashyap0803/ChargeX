@@ -9,6 +9,7 @@ import androidx.interpolator.view.animation.LinearOutSlowInInterpolator
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.car2go.maps.AnyMap
+import com.car2go.maps.model.BitmapDescriptor
 import com.car2go.maps.model.LatLng
 import com.car2go.maps.model.Marker
 import com.car2go.maps.model.MarkerOptions
@@ -24,6 +25,7 @@ import net.vonforst.evmap.model.ChargeLocation
 import net.vonforst.evmap.model.ChargeLocationCluster
 import net.vonforst.evmap.model.ChargepointListItem
 import net.vonforst.evmap.storage.PreferenceDataSource
+import net.vonforst.evmap.utils.distanceBetween
 import kotlin.math.max
 
 fun getMarkerTint(
@@ -92,6 +94,20 @@ class MarkerManager(
             updateChargerIcons()
         }
 
+    /** Range filter: only stations within this distance (km) are shown. 0 = disabled. */
+    var rangeFilterKm: Float = 0f
+        set(value) {
+            field = value
+            updateChargepoints() // re-add/remove markers based on range
+        }
+
+    /** User's current location for distance calculation */
+    var userLocation: LatLng? = null
+        set(value) {
+            field = value
+            if (rangeFilterKm > 0) updateChargepoints()
+        }
+
     init {
         map.setOnMarkerClickListener { marker ->
             when (marker) {
@@ -146,43 +162,53 @@ class MarkerManager(
         }
     }
 
+    /** Check if a charger is within the configured range filter */
+    private fun isInRange(charger: ChargeLocation): Boolean {
+        if (rangeFilterKm <= 0 || userLocation == null) return true
+        val dist = distanceBetween(
+            userLocation!!.latitude, userLocation!!.longitude,
+            charger.coordinates.lat, charger.coordinates.lng
+        ) / 1000.0 // meters to km
+        return dist <= rangeFilterKm
+    }
+
     private fun updateChargepoints() {
         val clusters = chargepoints.filterIsInstance<ChargeLocationCluster>()
         val chargers = chargepoints.filterIsInstance<ChargeLocation>()
 
-        val chargepointIds = chargers.map { it.id }.toSet()
+        // Filter to only in-range chargers when range filter is active
+        val visibleChargers = chargers.filter { isInRange(it) }
+        val visibleIds = visibleChargers.map { it.id }.toSet()
 
         // update icons of existing markers (connector filter may have changed)
         updateChargerIcons()
 
-        if (chargers.toSet() != markers.values) {
-            // remove markers that disappeared
-            val bounds = map.projection.visibleRegion.latLngBounds
-            markers.entries.toList().forEach { (marker, charger) ->
-                if (!chargepointIds.contains(charger.id)) {
-                    // animate marker if it is visible, otherwise remove immediately
-                    if (bounds.contains(marker.position)) {
-                        animateMarker(charger, marker, false)
-                    } else {
-                        animator.deleteMarker(marker)
-                    }
-                    markers.remove(marker)
+        // remove markers that disappeared OR are now out of range
+        val bounds = map.projection.visibleRegion.latLngBounds
+        markers.entries.toList().forEach { (marker, charger) ->
+            if (!visibleIds.contains(charger.id)) {
+                // animate marker if it is visible, otherwise remove immediately
+                if (bounds.contains(marker.position)) {
+                    animateMarker(charger, marker, false)
+                } else {
+                    animator.deleteMarker(marker)
                 }
+                markers.remove(marker)
             }
-            // add new markers
-            val map1 = markers.values.map { it.id }
-            for (charger in chargers) {
-                if (!map1.contains(charger.id)) {
-                    val marker = map.addMarker(
-                        MarkerOptions()
-                            .position(LatLng(charger.coordinates.lat, charger.coordinates.lng))
-                            .z(chargerZ)
-                            .icon(makeIcon(charger))
-                            .anchor(0.5f, if (mini) 0.5f else 1f)
-                    )
-                    animateMarker(charger, marker, true)
-                    markers[marker] = charger
-                }
+        }
+        // add new markers (only in-range ones)
+        val map1 = markers.values.map { it.id }
+        for (charger in visibleChargers) {
+            if (!map1.contains(charger.id)) {
+                val marker = map.addMarker(
+                    MarkerOptions()
+                        .position(LatLng(charger.coordinates.lat, charger.coordinates.lng))
+                        .z(chargerZ)
+                        .icon(makeIcon(charger))
+                        .anchor(0.5f, if (mini) 0.5f else 1f)
+                )
+                animateMarker(charger, marker, true)
+                markers[marker] = charger
             }
         }
 
@@ -234,15 +260,19 @@ class MarkerManager(
     private fun makeIcon(
         charger: ChargeLocation,
         scale: Float = 1f
-    ) = chargerIconGenerator.getBitmapDescriptor(
-        getMarkerTint(charger, filteredConnectors),
-        scale = scale,
-        highlight = charger.id == highlighedCharger?.id,
-        fault = charger.faultReport != null,
-        multi = charger.isMulti(filteredConnectors),
-        fav = charger.id in favorites,
-        mini = mini
-    )
+    ): BitmapDescriptor? {
+        val alpha = 255 // out-of-range stations are hidden entirely, no dimming needed
+        return chargerIconGenerator.getBitmapDescriptor(
+            getMarkerTint(charger, filteredConnectors),
+            scale = scale,
+            alpha = alpha,
+            highlight = charger.id == highlighedCharger?.id,
+            fault = charger.faultReport != null,
+            multi = charger.isMulti(filteredConnectors),
+            fav = charger.id in favorites,
+            mini = mini
+        )
+    }
 
     private fun animateMarker(charger: ChargeLocation, marker: Marker, appear: Boolean) {
         val tint = getMarkerTint(charger, filteredConnectors)

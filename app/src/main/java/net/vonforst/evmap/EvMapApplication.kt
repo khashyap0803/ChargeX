@@ -39,33 +39,35 @@ class EvMapApplication : Application(), Configuration.Provider {
         addDebugInterceptors(applicationContext)
 
         if (!BuildConfig.DEBUG) {
-            initAcra {
-                buildConfigClass = BuildConfig::class.java
+            val credsResId = resources.getIdentifier("acra_credentials", "string", packageName)
+            if (credsResId != 0) {
+                initAcra {
+                    buildConfigClass = BuildConfig::class.java
 
-                // Vehicles often don't have an email app, so use HTTP to send instead
-                reportFormat = StringFormat.JSON
-                httpSender {
-                    uri = getString(R.string.acra_backend_url)
-                    val creds = getString(R.string.acra_credentials).split(":")
-                    basicAuthLogin = creds[0]
-                    basicAuthPassword = creds[1]
-                    httpMethod = HttpSender.Method.POST
-                }
-
-                dialog {
-                    text = getString(R.string.crash_report_text)
-                    title = getString(R.string.app_name)
-                    commentPrompt = getString(R.string.crash_report_comment_prompt)
-                    resIcon = R.drawable.ic_launcher_foreground
-                    resTheme = R.style.AppTheme
-                    if (BuildConfig.FLAVOR_automotive == "automotive") {
-                        reportDialogClass =
-                            Class.forName("androidx.car.app.activity.CarAppActivity") as Class<out Activity>?
+                    reportFormat = StringFormat.JSON
+                    httpSender {
+                        uri = getString(R.string.acra_backend_url)
+                        val creds = getString(credsResId).split(":")
+                        basicAuthLogin = creds[0]
+                        basicAuthPassword = creds[1]
+                        httpMethod = HttpSender.Method.POST
                     }
-                }
 
-                limiter {
-                    enabled = true
+                    dialog {
+                        text = getString(R.string.crash_report_text)
+                        title = getString(R.string.app_name)
+                        commentPrompt = getString(R.string.crash_report_comment_prompt)
+                        resIcon = R.drawable.ic_launcher_foreground
+                        resTheme = R.style.AppTheme
+                        if (BuildConfig.FLAVOR_automotive == "automotive") {
+                            reportDialogClass =
+                                Class.forName("androidx.car.app.activity.CarAppActivity") as Class<out Activity>?
+                        }
+                    }
+
+                    limiter {
+                        enabled = true
+                    }
                 }
             }
         }

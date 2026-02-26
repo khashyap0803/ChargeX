@@ -189,6 +189,8 @@ android {
         }
         if (mapboxKey != null) {
             resValue("string", "mapbox_key", mapboxKey)
+        } else {
+            resValue("string", "mapbox_key", "")
         }
         var jawgKey =
             System.getenv("JAWG_API_KEY") ?: project.findProperty("JAWG_API_KEY")?.toString()
@@ -200,6 +202,8 @@ android {
         }
         if (jawgKey != null) {
             resValue("string", "jawg_key", jawgKey)
+        } else {
+            resValue("string", "jawg_key", "")
         }
         var arcgisKey =
             System.getenv("ARCGIS_API_KEY") ?: project.findProperty("ARCGIS_API_KEY")?.toString()
@@ -210,7 +214,9 @@ android {
             )
         }
         if (arcgisKey != null) {
-            resValue("string", "arcgis_key", jawgKey)
+            resValue("string", "arcgis_key", arcgisKey)
+        } else {
+            resValue("string", "arcgis_key", "")
         }
         var fronyxKey =
             System.getenv("FRONYX_API_KEY") ?: project.findProperty("FRONYX_API_KEY")?.toString()

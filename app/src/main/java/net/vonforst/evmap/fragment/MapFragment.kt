@@ -99,6 +99,9 @@ import net.vonforst.evmap.model.ChargerPhoto
 import net.vonforst.evmap.model.FILTERS_CUSTOM
 import net.vonforst.evmap.model.FILTERS_DISABLED
 import net.vonforst.evmap.model.FILTERS_FAVORITES
+import net.vonforst.evmap.model.WaitTimeEngine
+import net.vonforst.evmap.model.StationScorer
+import net.vonforst.evmap.model.StationData
 import net.vonforst.evmap.navigation.safeNavigate
 import net.vonforst.evmap.shouldUseImperialUnits
 import net.vonforst.evmap.storage.PreferenceDataSource
@@ -131,6 +134,12 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
     private var markerManager: MarkerManager? = null
     private lateinit var locationEngine: LocationEngine
     private var requestingLocationUpdates = false
+    // Persist range filter across view recreation (savedStateHandle fires before onMapReady)
+    private var pendingRangeFilterKm: Float = 0f
+    private var pendingUserLocation: LatLng? = null
+    // Persist vehicle data from VehicleInputFragment for forwarding to NavigationFragment
+    private var pendingVehicleId: String = ""
+    private var pendingBatteryPercent: Float = -1f
     private lateinit var bottomSheetBehavior: BottomSheetBehaviorGoogleMapsLike<View>
     private lateinit var detailAppBarBehavior: MergedAppBarLayoutBehavior
     private lateinit var detailsDialog: ConnectorDetailsDialog
@@ -399,25 +408,78 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
             ?.getLiveData<Float>("range_filter_km")
             ?.observe(viewLifecycleOwner) { rangeKm ->
                 if (rangeKm > 0) {
-                    com.google.android.material.snackbar.Snackbar.make(
+                    android.util.Log.d("MapFragment", "=== RANGE FILTER APPLIED: $rangeKm km ===")
+                    Snackbar.make(
                         binding.root,
-                        "Range filter: %.0f km — out-of-range stations dimmed".format(rangeKm),
-                        com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                        "Range filter: %.0f km \u2014 showing only reachable stations".format(rangeKm),
+                        Snackbar.LENGTH_LONG
                     ).show()
-                    // Apply range filter to marker rendering
-                    markerManager?.rangeFilterKm = rangeKm
-                    vm.location.value?.let { loc ->
-                        markerManager?.userLocation =
-                            com.car2go.maps.model.LatLng(loc.latitude, loc.longitude)
+
+                    // Resolve user location
+                    var userLatLng: LatLng? = vm.location.value?.let {
+                        LatLng(it.latitude, it.longitude)
+                    }
+                    if (userLatLng == null) {
+                        try {
+                            val lm = requireContext().getSystemService(android.content.Context.LOCATION_SERVICE) as android.location.LocationManager
+                            val loc = lm.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
+                                ?: lm.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
+                            if (loc != null) {
+                                userLatLng = LatLng(loc.latitude, loc.longitude)
+                                android.util.Log.d("MapFragment", "Using LocationManager fallback: ${loc.latitude}, ${loc.longitude}")
+                            }
+                        } catch (e: SecurityException) {
+                            android.util.Log.e("MapFragment", "No location permission for fallback: ${e.message}")
+                        }
+                    }
+
+                    // ALWAYS store in pending fields so onMapReady can apply to new MarkerManager
+                    pendingRangeFilterKm = rangeKm
+                    pendingUserLocation = userLatLng
+                    android.util.Log.d("MapFragment", "Stored pending filter: rangeKm=$rangeKm, userLoc=$userLatLng")
+
+                    // Also apply to current markerManager if it exists
+                    markerManager?.let { mm ->
+                        if (userLatLng != null) mm.userLocation = userLatLng
+                        mm.rangeFilterKm = rangeKm
+                        vm.chargepoints.value?.data?.let { cp ->
+                            android.util.Log.d("MapFragment", "Immediate re-filter: ${cp.size} chargepoints")
+                            mm.chargepoints = cp
+                        }
                     }
                 } else if (rangeKm < 0) {
-                    com.google.android.material.snackbar.Snackbar.make(
+                    android.util.Log.d("MapFragment", "=== RANGE FILTER CLEARED ===")
+                    Snackbar.make(
                         binding.root,
-                        "Range filter cleared",
-                        com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+                        "Range filter cleared \u2014 showing all stations",
+                        Snackbar.LENGTH_SHORT
                     ).show()
-                    markerManager?.rangeFilterKm = 0f
-                    markerManager?.userLocation = null
+                    pendingRangeFilterKm = 0f
+                    pendingUserLocation = null
+                    markerManager?.let { mm ->
+                        mm.rangeFilterKm = 0f
+                        vm.chargepoints.value?.data?.let { cp -> mm.chargepoints = cp }
+                    }
+                }
+            }
+
+        // Observe vehicle_id from VehicleInputFragment
+        findNavController().currentBackStackEntry?.savedStateHandle
+            ?.getLiveData<String>("vehicle_id")
+            ?.observe(viewLifecycleOwner) { vehicleId ->
+                if (!vehicleId.isNullOrBlank()) {
+                    pendingVehicleId = vehicleId
+                    android.util.Log.d("MapFragment", "Stored pending vehicleId: $vehicleId")
+                }
+            }
+
+        // Observe battery_percent from VehicleInputFragment
+        findNavController().currentBackStackEntry?.savedStateHandle
+            ?.getLiveData<Float>("battery_percent")
+            ?.observe(viewLifecycleOwner) { batteryPct ->
+                if (batteryPct != null && batteryPct > 0f) {
+                    pendingBatteryPercent = batteryPct
+                    android.util.Log.d("MapFragment", "Stored pending batteryPercent: $batteryPct")
                 }
             }
     }
@@ -456,6 +518,15 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
             if (charger != null) {
                 if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
                     val coord = charger.coordinates
+                    // Forward vehicle data to NavigationFragment's savedStateHandle
+                    // so it can display energy feasibility
+                    findNavController().currentBackStackEntry?.savedStateHandle?.apply {
+                        if (pendingVehicleId.isNotBlank()) {
+                            set("vehicle_id", pendingVehicleId)
+                            set("battery_percent", pendingBatteryPercent)
+                            android.util.Log.d("MapFragment", "Forwarding vehicle data to NavigationFragment: vehicleId=$pendingVehicleId, battery=$pendingBatteryPercent")
+                        }
+                    }
                     findNavController().safeNavigate(
                         MapFragmentDirections.actionMapToNavigation(
                             destLat = coord.lat.toFloat(),
@@ -718,6 +789,9 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
                 updateFavoriteToggle()
                 markerManager?.highlighedCharger = it
                 markerManager?.animateBounce(it)
+
+                // === Wait Time Prediction ===
+                displayWaitTimePrediction(it)
             } else {
                 bottomSheetBehavior.state = STATE_HIDDEN
                 markerManager?.highlighedCharger = null
@@ -726,6 +800,12 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
         vm.chargepoints.observe(viewLifecycleOwner, Observer { res ->
             val chargepoints = res.data
             if (chargepoints != null) {
+                // Keep user location synced so range filter works when new data arrives
+                if ((markerManager?.rangeFilterKm ?: 0f) > 0f) {
+                    vm.location.value?.let { loc ->
+                        markerManager?.userLocation = LatLng(loc.latitude, loc.longitude)
+                    }
+                }
                 markerManager?.chargepoints = chargepoints
             }
             when (res.status) {
@@ -1040,6 +1120,9 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
         this.map = map
         val context = this.context ?: return
         view ?: return
+        // Clear old MarkerManager's markers so stale unfiltered markers
+        // don't persist on the map when a new instance is created with a range filter
+        markerManager?.clearAll()
         markerManager = MarkerManager(context, map, this).apply {
             onChargerClick = {
                 vm.chargerSparse.value = it
@@ -1052,6 +1135,12 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
                         newZoom
                     )
                 )
+            }
+            // Apply pending range filter BEFORE setting chargepoints so filtering is active
+            if (pendingRangeFilterKm > 0f) {
+                android.util.Log.d("MapFragment", "onMapReady: Applying pending range filter: ${pendingRangeFilterKm} km, userLoc=$pendingUserLocation")
+                pendingUserLocation?.let { userLocation = it }
+                rangeFilterKm = pendingRangeFilterKm
             }
             chargepoints = vm.chargepoints.value?.data ?: emptyList()
             highlighedCharger = vm.chargerSparse.value
@@ -1440,12 +1529,34 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
             vm.location.value = latLng
             val camUpdate = map.cameraUpdateFactory.newLatLng(latLng)
             map.animateCamera(camUpdate)
-            // Keep range filter location in sync
-            if ((markerManager?.rangeFilterKm ?: 0f) > 0f) {
-                markerManager?.userLocation =
-                    com.car2go.maps.model.LatLng(latLng.latitude, latLng.longitude)
-            }
+            // Always keep markerManager location in sync for range filtering
+            markerManager?.userLocation = LatLng(latLng.latitude, latLng.longitude)
         }
+    }
+
+    /**
+     * Displays predicted wait time using M/M/s queuing theory when a charger is selected.
+     * Shows the result as the toolbar subtitle in the detail bottom sheet.
+     */
+    private fun displayWaitTimePrediction(charger: ChargeLocation) {
+        val totalChargers = charger.chargepoints.sumOf { it.count }
+        val maxPower = charger.maxPower()?.toDouble() ?: 50.0
+        val stationName = charger.name ?: charger.address?.toString() ?: ""
+
+        val prediction = WaitTimeEngine.calculateDynamicWaitTime(
+            totalChargers = totalChargers,
+            appUsersCharging = 0, // No real-time app user data yet
+            stationName = stationName,
+            maxPowerKw = maxPower
+        )
+
+        // Show wait time as toolbar subtitle
+        val subtitle = if (prediction.isAvailable) {
+            "\u26A1 Available \u2022 ${prediction.queueProbabilityPercent} queue chance"
+        } else {
+            "\u231B ~${prediction.displayWaitTime} wait \u2022 ${prediction.areaProfile.displayName}"
+        }
+        detailAppBarBehavior.setToolbarTitle("${charger.name}\n$subtitle")
     }
 
     override fun onPause() {

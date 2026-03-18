@@ -160,6 +160,8 @@ ChargepointApi.kt (interface)
     ├──◀ PreferenceDataSource.kt  — Stores which data source the user selected
     │
     └──▶ ChargersModel.kt        — Returns ChargeLocation, Chargepoint models
+    │                                (later filtered by MarkerUtils.isInRange()
+    │                                for range-based station hiding)
 ```
 
 ---

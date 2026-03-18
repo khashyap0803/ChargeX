@@ -12,6 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import co.anbora.labs.spatia.builder.SpatiaRoom
 import co.anbora.labs.spatia.geometry.GeometryConverters
 import net.vonforst.evmap.api.goingelectric.GEChargeCard
+import net.vonforst.evmap.model.StationOccupancy
 import net.vonforst.evmap.api.goingelectric.GEChargepoint
 import net.vonforst.evmap.api.goingelectric.GENetwork
 import net.vonforst.evmap.api.goingelectric.GEPlug
@@ -41,8 +42,9 @@ import net.vonforst.evmap.model.SliderFilterValue
         OCMCountry::class,
         OCMOperator::class,
         OSMNetwork::class,
-        SavedRegion::class
-    ], version = 28
+        SavedRegion::class,
+        StationOccupancy::class
+    ], version = 29
 )
 @TypeConverters(Converters::class, GeometryConverters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -61,6 +63,9 @@ abstract class AppDatabase : RoomDatabase() {
 
     // OpenStreetMap API specific
     abstract fun osmReferenceDataDao(): OSMReferenceDataDao
+
+    // Station Occupancy (for Wait Time Prediction + Monte Carlo Simulation)
+    abstract fun stationOccupancyDao(): StationOccupancyDao
 
     companion object {
         private lateinit var context: Context
@@ -87,7 +92,7 @@ abstract class AppDatabase : RoomDatabase() {
                 MIGRATION_12, MIGRATION_13, MIGRATION_14, MIGRATION_15, MIGRATION_16,
                 MIGRATION_17, MIGRATION_18, MIGRATION_19, MIGRATION_20, MIGRATION_21,
                 MIGRATION_22, MIGRATION_23, MIGRATION_24, MIGRATION_25, MIGRATION_26,
-                MIGRATION_27, MIGRATION_28
+                MIGRATION_27, MIGRATION_28, MIGRATION_29
             )
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
@@ -555,6 +560,21 @@ abstract class AppDatabase : RoomDatabase() {
                 // Force nobil data refresh to fetch EVSE UId attributes needed for real-time data
                 db.execSQL("DELETE FROM SavedRegion WHERE `dataSource` = 'nobil'")
                 db.execSQL("DELETE FROM ChargeLocation WHERE `dataSource` = 'nobil'")
+            }
+        }
+
+        private val MIGRATION_29 = object : Migration(28, 29) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `station_occupancy` (" +
+                    "`station_id` INTEGER NOT NULL, " +
+                    "`total_plugs` INTEGER NOT NULL, " +
+                    "`occupied_plugs` INTEGER NOT NULL, " +
+                    "`max_power_kw` REAL NOT NULL, " +
+                    "`area_profile` TEXT NOT NULL, " +
+                    "`last_updated` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`station_id`))"
+                )
             }
         }
     }

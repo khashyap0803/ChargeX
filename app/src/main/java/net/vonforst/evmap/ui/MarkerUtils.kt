@@ -142,6 +142,18 @@ class MarkerManager(
         }
     }
 
+    /** Remove ALL markers managed by this instance from the map */
+    fun clearAll() {
+        markers.keys.toList().forEach { marker ->
+            animator.deleteMarker(marker)
+        }
+        markers.clear()
+        clusterMarkers.keys.toList().forEach { it.remove() }
+        clusterMarkers.clear()
+        searchResultMarker?.remove()
+        searchResultMarker = null
+    }
+
     fun animateBounce(charger: ChargeLocation) {
         val marker = markers.inverse[charger] ?: return
         animator.animateMarkerBounce(marker, mini)
@@ -169,7 +181,11 @@ class MarkerManager(
             userLocation!!.latitude, userLocation!!.longitude,
             charger.coordinates.lat, charger.coordinates.lng
         ) / 1000.0 // meters to km
-        return dist <= rangeFilterKm
+        val inRange = dist <= rangeFilterKm
+        if (!inRange) {
+            android.util.Log.v("MarkerManager", "FILTERED OUT: ${charger.name} at %.1f km (max: %.1f km)".format(dist, rangeFilterKm.toDouble()))
+        }
+        return inRange
     }
 
     private fun updateChargepoints() {
@@ -179,6 +195,7 @@ class MarkerManager(
         // Filter to only in-range chargers when range filter is active
         val visibleChargers = chargers.filter { isInRange(it) }
         val visibleIds = visibleChargers.map { it.id }.toSet()
+        android.util.Log.d("MarkerManager", "updateChargepoints: total=${chargers.size}, visible=${visibleChargers.size}, filtered=${chargers.size - visibleChargers.size}, rangeKm=$rangeFilterKm, userLoc=$userLocation")
 
         // update icons of existing markers (connector filter may have changed)
         updateChargerIcons()

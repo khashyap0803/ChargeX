@@ -145,7 +145,9 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
 ```
 Database.kt
     │
-    ├──◀ MapViewModel.kt         — Reads/writes chargers and favorites
+    ├──◀ MapViewModel.kt         — Reads/writes chargers and favorites.
+    │                              Chargers then go to MarkerManager for
+    │                              range-filtered display (clearAll + isInRange).
     │
     ├──◀ CleanupCacheWorker.kt   — Deletes old cached entries
     │

@@ -335,6 +335,9 @@ dependencies {
     implementation("com.mikepenz:aboutlibraries:$aboutLibsVersion")
     implementation("com.airbnb.android:lottie:6.6.10")
     implementation("io.michaelrocks.bimap:bimap:1.1.0")
+
+    // ZXing QR code generation (for Offline Booking Verification)
+    implementation("com.google.zxing:core:3.5.3")
     implementation("com.github.pengrad:mapscaleview:1.6.0")
     implementation("com.github.romandanylyk:PageIndicatorView:b1bad589b5")
     implementation("com.github.ev-map:locale-config-x:58b036abf4")

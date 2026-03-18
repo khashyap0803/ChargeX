@@ -1,7 +1,7 @@
 # MarkerUtils.kt
 
 > **File**: `app/src/main/java/net/vonforst/evmap/ui/MarkerUtils.kt`  
-> **Purpose**: Manages all map markers (charging station pins, clusters, search results) including range-based filtering.
+> **Purpose**: Manages all map markers (charging station pins, clusters, search results) including range-based filtering and lifecycle cleanup.
 
 ---
 
@@ -15,6 +15,7 @@
 4. **Animating markers** with smooth appear/disappear effects
 5. **Generating icons** with the right color, size, and style
 6. **Clustering** nearby stations into a single "5+" bubble at low zoom
+7. **Clearing all markers** when the view is recreated via `clearAll()`
 
 ---
 
@@ -49,20 +50,39 @@ When you set any of these properties, the markers **automatically update** (via 
 
 ---
 
+## Key Methods
+
+### `clearAll()` — Remove All Markers
+
+```kotlin
+fun clearAll() {
+    markers.keys.forEach { it.remove() }
+    markers.clear()
+    clusterMarkers.keys.forEach { it.remove() }
+    clusterMarkers.clear()
+}
+```
+
+**Why this exists**: When the Fragment's view is destroyed and recreated (e.g., after navigating to VehicleInputFragment and back), a NEW MarkerManager is created in `onMapReady()`. The OLD MarkerManager's markers could persist on the map if the MapView is reused. `clearAll()` is called in MapFragment's `onMapReady()` BEFORE creating the new MarkerManager to ensure a clean slate.
+
+**Without this**: Users would see 336 unfiltered markers (from the old instance) stacked on top of the 192 filtered markers (from the new instance), making it look like the filter isn't working.
+
+---
+
 ## How Range Filtering Works
 
-This is one of the most important features. When the user enters their vehicle details and applies a range filter:
+When the user enters their vehicle details and applies a range filter:
 
 ```
-User sets rangeFilterKm = 200.0 and userLocation = (17.385, 78.487)
+User sets rangeFilterKm = 4.5 and userLocation = (17.385, 78.487)
          │
          ▼
 isInRange() is called for EACH charging station:
          │
-         ├─ Station A is 50 km away  → IN RANGE → Show marker ✅
-         ├─ Station B is 150 km away → IN RANGE → Show marker ✅
-         ├─ Station C is 250 km away → OUT OF RANGE → HIDE marker ❌
-         └─ Station D is 300 km away → OUT OF RANGE → HIDE marker ❌
+         ├─ Station A is 2 km away   → IN RANGE → Show marker ✅
+         ├─ Station B is 4 km away   → IN RANGE → Show marker ✅
+         ├─ Station C is 5 km away   → OUT OF RANGE → HIDE marker ❌
+         └─ Station D is 10 km away  → OUT OF RANGE → HIDE marker ❌
 ```
 
 ### The `isInRange()` Function
@@ -78,7 +98,7 @@ private fun isInRange(charger: ChargeLocation): Boolean {
 }
 ```
 
-> **Note**: This uses straight-line (Haversine) distance, not driving distance. A station 200 km away by road might only be 150 km as-the-crow-flies.
+> **Note**: Uses straight-line (Haversine) distance, not driving distance. A station 4.5 km straight-line away could be 6+ km by road.
 
 ---
 
@@ -87,8 +107,7 @@ private fun isInRange(charger: ChargeLocation): Boolean {
 ### `updateChargepoints()` — Add/Remove Markers
 
 ```
-Called when: chargepoints list changes, range filter changes, 
-            user location changes
+Called when: chargepoints list changes, range filter changes, user location changes
          │
          ▼
 1. Filter chargepoints to only in-range stations
@@ -109,8 +128,7 @@ Called when: chargepoints list changes, range filter changes,
 ### `updateChargerIcons()` — Update Existing Marker Styles
 
 ```
-Called when: connector filter changes, favorites change, 
-            highlighted charger changes
+Called when: connector filter changes, favorites change, highlighted charger changes
          │
          ▼
 For each existing marker on the map:
@@ -151,19 +169,6 @@ private fun makeIcon(charger: ChargeLocation, scale: Float = 1f): BitmapDescript
 
 ---
 
-## Marker Animation
-
-Markers don't just pop in and out — they animate smoothly:
-
-```
-Adding a marker:    Marker appears with a scale-up/bounce animation
-Removing a marker:  Marker shrinks/fades before being deleted
-```
-
-This is handled by the `animator` object and the `animateMarker()` function.
-
----
-
 ## Clustering
 
 When zoomed out, nearby stations merge into cluster bubbles:
@@ -179,8 +184,6 @@ Zoom Level 5 (far):     Heavy clustering
                          ⑫ ⑧ ⑤
 ```
 
-Cluster markers show the **count** of stations in that area and are managed separately from individual charger markers.
-
 ---
 
 ## How It Connects to Other Files
@@ -189,7 +192,8 @@ Cluster markers show the **count** of stations in that area and are managed sepa
 MarkerUtils.kt
     │
     ├──◀ MapFragment.kt          — Creates MarkerManager, sets chargepoints,
-    │                               range filter, user location
+    │                               range filter, user location. Calls clearAll()
+    │                               before creating new instance in onMapReady()
     │
     ├──◀ VehicleInputFragment.kt — Passes rangeFilterKm back to MapFragment
     │                               which updates MarkerManager.rangeFilterKm
@@ -207,8 +211,10 @@ MarkerUtils.kt
 
 1. **Hide, don't dim**: Out-of-range stations are completely **removed from the map**, not just made transparent. This keeps the map clean and avoids confusion.
 
-2. **Animated transitions**: Markers smoothly appear/disappear rather than blinking in/out, making the map feel polished.
+2. **clearAll() for lifecycle cleanup**: When the Fragment view is recreated, `clearAll()` removes all markers from the OLD MarkerManager before a new one takes over. This prevents stale unfiltered markers from persisting.
 
-3. **BiMap for marker tracking**: Uses a `HashBiMap<Marker, ChargeLocation>` to efficiently look up markers by charger or charger by marker (bidirectional).
+3. **Animated transitions**: Markers smoothly appear/disappear rather than blinking in/out, making the map feel polished.
 
-4. **Lazy icon updates**: Icons are only regenerated when something changes (filter, favorite, highlight), not on every frame.
+4. **BiMap for marker tracking**: Uses a `HashBiMap<Marker, ChargeLocation>` to efficiently look up markers by charger or charger by marker (bidirectional).
+
+5. **Lazy icon updates**: Icons are only regenerated when something changes (filter, favorite, highlight), not on every frame.

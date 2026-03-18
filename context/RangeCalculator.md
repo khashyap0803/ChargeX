@@ -1,148 +1,182 @@
 # RangeCalculator.kt
 
 > **File**: `app/src/main/java/net/vonforst/evmap/model/RangeCalculator.kt`  
-> **Purpose**: Calculates the estimated driving range for an EV based on battery level, vehicle specs, and Indian driving conditions.
+> **Purpose**: Calculates estimated driving range, energy consumption, and route feasibility using a **physics-based model** with per-vehicle parameters tuned for Indian driving conditions.
 
 ---
 
 ## What Is This File?
 
-`RangeCalculator` is a **singleton object** (only one instance exists) that answers the question: *"How far can I drive with my current battery?"*
+`RangeCalculator` is a **singleton object** (only one instance exists) that answers three questions:
+1. *"How far can I drive with my current battery?"* → `calculateRange()`
+2. *"Can I reach this station?"* → `isStationReachable()`
+3. *"Is this route feasible? What battery will I arrive with?"* → `isRouteFeasible()` + `calculateEnergyConsumption()`
 
-It takes into account real-world factors like:
+It uses a **physics-based energy consumption model** that accounts for:
+- 🏋️ Vehicle mass (108 kg scooter vs 2520 kg SUV)
+- 🌬️ Aerodynamic drag (frontal area × drag coefficient)
 - 🌡️ Temperature (Indian heat drains battery faster)
-- ❄️ AC usage (very common in India = ~10% range reduction)
+- ❄️ AC usage (scooters: none, cars: 1.8 kW)
 - 🚗 Driving mode (city/highway/mixed)
 - 📉 Real-world vs official range gap (15% haircut on ARAI ratings)
 
 ---
 
-## The Three Functions
+## The Five Main Functions
 
-### 1. `calculateRange()` — Main function
+### 1. `calculateRange()` — Simplified range estimate
 
 ```kotlin
 fun calculateRange(
-    vehicle: VehicleProfile,      // Which car
+    vehicle: VehicleProfile,      // Which vehicle (includes physics params)
     batteryPercent: Double,        // Current charge (0-100)
-    acOn: Boolean = true,          // Is AC running? (default: yes)
+    acOn: Boolean = true,          // Is AC running? (ignored for scooters via hasAC)
     drivingMode: String = "mixed", // "city", "highway", or "mixed"
     temperatureC: Double = 35.0    // Outside temperature in °C
 ): Double                          // Returns: estimated range in km
 ```
 
-**Example:**
+Uses stacking correction factors on the vehicle's base efficiency. Good for quick UI estimates.
+
+### 2. `calculateEnergyConsumption()` — Physics-based energy model
+
 ```kotlin
-val tataNexton = VehicleProfile.findById("tata_nexon_lr")!!
-val range = RangeCalculator.calculateRange(
-    vehicle = tataNexton,     // 40.5 kWh battery, 12.5 kWh/100km
-    batteryPercent = 80.0,    // 80% charged
-    acOn = true,              // AC is on
-    drivingMode = "city",     // City driving
-    temperatureC = 38.0       // Hot Indian summer
-)
-// Result: approximately 215 km
+fun calculateEnergyConsumption(
+    vehicle: VehicleProfile,
+    routeDistanceKm: Double,
+    routeDurationMinutes: Double,
+    temperatureC: Double = 35.0,
+    acOn: Boolean = true,
+    drivingMode: String = "mixed"
+): Double                          // Returns: energy consumed in kWh
 ```
 
-### 2. `isStationReachable()` — Can I reach a station?
+This is the **detailed physics model** that computes energy from first principles:
+
+```
+Energy = Rolling Resistance + Aerodynamic Drag + Acceleration + Electronics + AC
+
+Where:
+├── Rolling Resistance = mass × g × Crr × distance
+│   (mass = curbWeightKg + 75 kg rider/driver)
+│   (Crr = 0.015 for Indian roads)
+│
+├── Aerodynamic Drag = 0.5 × ρ × Cd × A × v² × distance
+│   (ρ = 1.225 kg/m³ air density)
+│   (Cd = vehicle.dragCoefficient)
+│   (A = vehicle.frontalAreaM2)
+│   (v = distance / time → average speed)
+│
+├── Acceleration = mass × a × distance × factor
+│   (assumes 0.5 m/s² avg acceleration for city driving)
+│
+├── Electronics = power × time
+│   (Scooter: 0.05 kW | Car/SUV: 0.3 kW)
+│
+└── AC = power × time  (ONLY if vehicle.hasAC && acOn)
+    (Car/SUV: 1.8 kW | Scooter: 0 kW)
+```
+
+**Per-vehicle parameter usage:**
+
+| Parameter | Scooter (Ather 450X) | Car (Tata Nexon EV) | Source |
+|-----------|---------------------|--------------------|----|
+| Total mass | 108 + 75 = 183 kg | 1580 + 75 = 1655 kg | `vehicle.curbWeightKg` |
+| Frontal area | 0.5 m² | 2.3 m² | `vehicle.frontalAreaM2` |
+| Drag coefficient | 0.9 | 0.35 | `vehicle.dragCoefficient` |
+| Electronics | 0.05 kW | 0.3 kW | Based on `vehicleType` |
+| AC power | 0 kW | 1.8 kW | Based on `vehicle.hasAC` |
+
+### 3. `isRouteFeasible()` — Complete route feasibility check
+
+```kotlin
+fun isRouteFeasible(
+    vehicle: VehicleProfile,
+    batteryPercent: Double,
+    routeDistanceKm: Double,
+    routeDurationMinutes: Double,
+    temperatureC: Double = 35.0,
+    acOn: Boolean = true,
+    safetyMargin: Double = 0.0
+): FeasibilityResult
+```
+
+Returns a `FeasibilityResult` with:
+- `isFeasible`: Boolean — can the vehicle make the trip?
+- `energyRequired`: Double — kWh needed for the route
+- `energyAvailable`: Double — kWh in the battery
+- `arrivalBatteryPercent`: Double — remaining battery at destination
+- `statusMessage`: String — human-readable status ("✅ Comfortable", "⚠️ Tight", "❌ Insufficient")
+- `trafficFactor`: String — traffic condition description
+
+### 4. `isStationReachable()` — Can I reach a station?
 
 ```kotlin
 fun isStationReachable(
     vehicle: VehicleProfile,
     batteryPercent: Double,
-    distanceKm: Double,        // Distance to the station
+    distanceKm: Double,
     acOn: Boolean = true,
     drivingMode: String = "mixed",
     temperatureC: Double = 35.0
-): Boolean                      // true = you can reach it, false = you can't
+): Boolean                      // true = you can reach it
 ```
 
-Includes a **10% safety margin** — it only says "yes" if you can reach the station using only 90% of your range.
+Includes a **10% safety margin** — only says "yes" if you can reach using 90% of range.
 
-### 3. `remainingBatteryPercent()` — What battery will I have left?
+### 5. `remainingBatteryPercent()` — Battery left after a trip
 
 ```kotlin
 fun remainingBatteryPercent(
     vehicle: VehicleProfile,
     batteryPercent: Double,
-    distanceKm: Double,
-    ...
+    distanceKm: Double, ...
 ): Double  // Returns: battery % remaining after driving distanceKm
 ```
 
-**Example:** "If I drive 50 km with 80% battery, I'll arrive with ~65% remaining."
-
 ---
 
-## How Range Calculation Works (Step by Step)
+## How Range Calculation Works (Simplified — `calculateRange`)
 
 ```
 Step 1: Calculate available energy
-┌─────────────────────────────────────┐
-│ availableEnergy = 40.5 × (80/100)  │
-│                 = 32.4 kWh          │
-└─────────────────────────────────────┘
+   availableEnergy = batteryCapacityKwh × (batteryPercent / 100)
 
 Step 2: Get base efficiency
-┌─────────────────────────────────────┐
-│ efficiencyPerKm = 12.5 / 100       │
-│                 = 0.125 kWh/km      │
-└─────────────────────────────────────┘
+   efficiencyPerKm = efficiencyKwhPer100Km / 100
 
-Step 3: Apply driving mode correction
-┌─────────────────────────────────────┐
-│ City:    × 0.90 (EVs are MORE      │
-│                   efficient in      │
-│                   stop-start due    │
-│                   to regeneration)  │
-│ Highway: × 1.15 (more air drag)    │
-│ Mixed:   × 1.00 (no change)        │
-└─────────────────────────────────────┘
+Step 3: Apply driving mode
+   City:    × 0.90 (regen braking helps in stop-start)
+   Highway: × 1.15 (more air drag at high speed)
+   Mixed:   × 1.00 (baseline)
 
 Step 4: Apply temperature penalty
-┌─────────────────────────────────────┐
-│ > 40°C: × 1.12 (extreme heat)      │
-│ > 35°C: × 1.08 (hot — typical      │
-│                  Indian summer)     │
-│ > 28°C: × 1.03 (warm)              │
-│ < 15°C: × 1.10 (cold — rare in     │
-│                  India)             │
-│ else:   × 1.00 (ideal 15-28°C)     │
-└─────────────────────────────────────┘
+   > 40°C: × 1.12 | > 35°C: × 1.08 | > 28°C: × 1.03
+   < 15°C: × 1.10 | else: × 1.00
 
-Step 5: Apply AC penalty
-┌─────────────────────────────────────┐
-│ AC On:  × 1.10 (+10% energy use)   │
-│ AC Off: × 1.00 (no change)         │
-└─────────────────────────────────────┘
+Step 5: Apply AC penalty (ONLY if vehicle.hasAC && acOn)
+   AC On:  × 1.10 (+10% energy use)
+   AC Off: × 1.00
 
 Step 6: Apply real-world correction
-┌─────────────────────────────────────┐
-│ × 1.15 (ARAI ratings are ~15%      │
-│          optimistic vs reality)     │
-└─────────────────────────────────────┘
+   × 1.15 (ARAI ratings are ~15% optimistic)
 
 Step 7: Calculate final range
-┌─────────────────────────────────────┐
-│ range = availableEnergy / adjusted  │
-│         efficiency                  │
-└─────────────────────────────────────┘
+   range = availableEnergy / adjustedEfficiency
 ```
 
-### Worked Example: Tata Nexon LR, 80%, City, AC On, 38°C
+### Worked Example: Ather 450X Scooter, 5%, City, 35°C
 
 ```
-Available energy: 40.5 × 0.80 = 32.4 kWh
-Base efficiency:  12.5 / 100  = 0.125 kWh/km
-After city mode:  0.125 × 0.90 = 0.1125 kWh/km
-After 38°C heat:  0.1125 × 1.08 = 0.1215 kWh/km
-After AC:         0.1215 × 1.10 = 0.13365 kWh/km
-After real-world: 0.13365 × 1.15 = 0.15370 kWh/km
+Available energy: 3.7 × 0.05 = 0.185 kWh
+Base efficiency:  3.4 / 100  = 0.034 kWh/km
+After city mode:  0.034 × 0.90 = 0.0306 kWh/km
+After 35°C heat:  0.0306 × 1.08 = 0.03305 kWh/km
+After AC:         0.03305 × 1.00 = 0.03305 kWh/km  ← NO AC (scooter!)
+After real-world: 0.03305 × 1.15 = 0.03800 kWh/km
 
-Range = 32.4 / 0.15370 ≈ 210.8 km
+Range = 0.185 / 0.03800 ≈ 4.5 km
 ```
-
-vs. the official ARAI range of 437 km × 80% = 350 km — that's a **40% difference** from official numbers, which is realistic for Indian conditions!
 
 ---
 
@@ -154,10 +188,15 @@ RangeCalculator.kt
     ├──▶ VehicleInputFragment.kt  — Calls calculateRange() when user
     │                                adjusts battery slider or picks a vehicle
     │
-    ├──▶ VehicleProfile.kt         — Uses vehicle specs (batteryCapacityKwh,
-    │                                efficiencyKwhPer100Km) as inputs
+    ├──▶ NavigationFragment.kt    — Calls isRouteFeasible() to display
+    │                                energy feasibility card with arrival
+    │                                battery %, energy required/available
     │
-    └──▶ MarkerUtils.kt            — The calculated range (in km) is passed
+    ├──▶ VehicleProfile.kt        — Uses per-vehicle physics params:
+    │                                curbWeightKg, frontalAreaM2,
+    │                                dragCoefficient, vehicleType, hasAC
+    │
+    └──▶ MarkerUtils.kt           — The calculated range (in km) is passed
                                      to the map to hide stations beyond range
 ```
 
@@ -165,10 +204,14 @@ RangeCalculator.kt
 
 ## Key Design Decisions
 
-1. **Conservative estimates**: The calculator applies multiple stacking penalties (temperature + AC + real-world correction), which gives a realistic "worst case" range. This prevents the user from getting stranded.
+1. **Dual calculation paths**: `calculateRange()` uses simple efficiency-based math for quick UI display. `calculateEnergyConsumption()` uses full physics for accurate route feasibility.
 
-2. **India-optimized**: The temperature ranges and defaults (35°C, AC on) reflect typical Indian driving conditions. The 15% real-world correction accounts for ARAI rating optimism.
+2. **Per-vehicle physics**: Each vehicle defines its own mass, drag, and frontal area. Previously, hardcoded 1600 kg car defaults caused 20× overestimation for 108 kg scooters.
 
-3. **Safety margin in reachability**: `isStationReachable()` uses only 90% of calculated range, ensuring the user always has a buffer.
+3. **No AC for scooters**: The `hasAC` property from VehicleProfile ensures scooter energy calculations don't include a phantom 1.8 kW AC load.
 
-4. **City driving is more efficient for EVs**: Unlike petrol cars, EVs are MORE efficient in city traffic because regenerative braking recaptures energy during stop-start driving.
+4. **Conservative estimates**: Multiple stacking penalties (temperature + AC + real-world) give realistic "worst case" range, preventing users from getting stranded.
+
+5. **India-optimized**: Temperature ranges and defaults (35°C, AC on for cars) reflect typical Indian driving conditions. The 15% correction accounts for ARAI rating optimism.
+
+6. **Zero safety margin for feasibility display**: `isRouteFeasible` uses `safetyMargin=0.0` because `calculateRange` already applies real-world corrections. Adding a margin on top makes small batteries (3.7 kWh at 5%) show negative energy.

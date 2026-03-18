@@ -204,9 +204,13 @@ RouteService.kt
     ├──◀ build.gradle.kts       — Provides the Google API key via
     │                              gradle.properties
     │
-    └──▶ DecodedRoute            — Returned to NavigationFragment
-                                   for display (polyline on map,
-                                   distance text, duration text)
+    └──▶ DecodedRoute            — Returned to NavigationFragment:
+                                   ├── polyline points → drawn on map
+                                   ├── distanceKm → displayed + passed to
+                                   │   RangeCalculator.isRouteFeasible()
+                                   └── durationMinutes → displayed + passed to
+                                       calculateEnergyConsumption() for
+                                       physics-based energy card
 ```
 
 ---
@@ -220,3 +224,5 @@ RouteService.kt
 3. **Separate polyline decoders**: Google and OSRM use different polyline precision (5 vs 6 decimal places). Using the wrong decoder would shift coordinates by ~11x.
 
 4. **Comprehensive error logging**: Every API call, response, and error is logged to help debug routing issues in production.
+
+5. **Route data feeds energy model**: `DecodedRoute.distanceKm` and `durationMinutes` are passed to `RangeCalculator.isRouteFeasible()` by `NavigationFragment`, which uses them for physics-based energy consumption calculation (average speed = distance/time → aerodynamic drag calculation).

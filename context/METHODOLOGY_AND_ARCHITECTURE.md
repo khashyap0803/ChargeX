@@ -87,10 +87,10 @@ The app follows **MVVM (Model-View-ViewModel)** methodology:
 ║  │  │              │ │                 │ │                   │    │  ║
 ║  │  │ • Shows map  │ │ • Car dropdown  │ │ • Route on map    │    │  ║
 ║  │  │ • Station    │ │ • Battery slider│ │ • Distance/time   │    │  ║
-║  │  │   markers    │ │ • AC toggle     │ │ • Start nav button│    │  ║
-║  │  │ • Search bar │ │ • Range display │ │                   │    │  ║
-║  │  │ • Bottom     │ │ • Apply filter  │ │                   │    │  ║
-║  │  │   sheet      │ │                 │ │                   │    │  ║
+║  │  │   markers    │ │ • AC toggle     │ │ • Energy card     │    │  ║
+║  │  │ • Search bar │ │ • Range display │ │ • Vehicle info    │    │  ║
+║  │  │ • Bottom     │ │ • Apply filter  │ │ • Start nav button│    │  ║
+║  │  │   sheet      │ │ • 24 EV models  │ │ • hasAC handling  │    │  ║
 ║  │  └──────┬───────┘ └────────┬────────┘ └─────────┬─────────┘    │  ║
 ║  │         │                  │                     │              │  ║
 ║  └─────────┼──────────────────┼─────────────────────┼──────────────┘  ║
@@ -293,7 +293,12 @@ STEP 4: User selects model "Nexon EV Max (Long Range)"
                 id = "tata_nexon_lr",
                 batteryCapacityKwh = 40.5,
                 officialRangeKm = 437.0,
-                efficiencyKwhPer100Km = 12.5
+                efficiencyKwhPer100Km = 12.5,
+                vehicleType = CAR,
+                curbWeightKg = 1580.0,
+                frontalAreaM2 = 2.3,
+                dragCoefficient = 0.35
+                // hasAC = true (computed: vehicleType != SCOOTER)
             )
         └── Vehicle specs card appears showing battery, efficiency, range
 
@@ -326,12 +331,20 @@ STEP 6: User taps "Apply Filter"
         └── findNavController().navigateUp() → returns to MapFragment
 
 STEP 7: MapFragment receives the result
-        ├── savedStateHandle.getLiveData("range_filter_km").observe { rangeKm ->
-        │       markerManager.rangeFilterKm = rangeKm   // = 211.0
-        │   }
-        └── MarkerManager.rangeFilterKm setter triggers updateChargepoints()
+        ├── savedStateHandle.getLiveData("range_filter_km") → pendingRangeFilterKm
+        ├── savedStateHandle.getLiveData("vehicle_id") → pendingVehicleId
+        ├── savedStateHandle.getLiveData("battery_percent") → pendingBatteryPercent
+        │   (Stored as pending fields because savedStateHandle fires
+        │    BEFORE onMapReady creates the new MarkerManager)
+        └── If MarkerManager exists: markerManager.rangeFilterKm = rangeKm
 
-STEP 8: MarkerManager.updateChargepoints() runs again
+STEP 7b: onMapReady fires (if view was recreated)
+        ├── markerManager?.clearAll()  ← removes stale unfiltered markers
+        ├── Creates new MarkerManager
+        ├── Applies pendingRangeFilterKm and pendingUserLocation
+        └── Sets chargepoints → triggers updateChargepoints() with filter
+
+STEP 8: MarkerManager.updateChargepoints() runs
         ├── For each station, calls isInRange():
         │   ├── Station A is 50 km away  → 50 ≤ 211 → SHOW ✅
         │   ├── Station B is 150 km away → 150 ≤ 211 → SHOW ✅
@@ -393,55 +406,43 @@ STEP 6: RouteService.getRoute() runs
         │
         ├── TRY GOOGLE DIRECTIONS API FIRST:
         │   getGoogleRoute(17.3850, 78.4867, 17.4399, 78.4983, apiKey)
-        │   │
-        │   ├── HTTP GET → https://maps.googleapis.com/maps/api/directions/json?
-        │   │              origin=17.3850,78.4867
-        │   │              &destination=17.4399,78.4983
-        │   │              &mode=driving
-        │   │              &region=in          ← optimized for India
-        │   │              &key=AIzaSy...
-        │   │
-        │   ├── Google returns JSON with:
-        │   │   ├── status: "OK"
-        │   │   ├── distance: { value: 12300, text: "12.3 km" }
-        │   │   ├── duration: { value: 1520, text: "25 mins" }
-        │   │   └── overview_polyline: "a~l~Fjk~uO..." (encoded route)
-        │   │
-        │   ├── decodePolyline5("a~l~Fjk~uO...")
-        │   │   └── Converts encoded string → List of (lat, lng) pairs
-        │   │       → [(17.385, 78.487), (17.386, 78.488), ..., (17.440, 78.498)]
-        │   │       → 156 GPS coordinate points
-        │   │
-        │   └── Returns DecodedRoute(
-        │           points = [156 coordinate pairs],
-        │           distanceMeters = 12300.0,
-        │           durationSeconds = 1520.0
-        │       )
+        │   ├── HTTP GET → maps.googleapis.com/maps/api/directions/json?...
+        │   ├── decodePolyline5() → 156 GPS coordinate points
+        │   └── Returns DecodedRoute(points, distanceMeters, durationSeconds)
         │
         ├── IF GOOGLE FAILS → FALLBACK TO OSRM:
-        │   getOsrmRoute(17.3850, 78.4867, 17.4399, 78.4983)
-        │   │
-        │   ├── HTTP GET → https://router.project-osrm.org/route/v1/driving/
-        │   │              78.4867,17.3850;78.4983,17.4399
-        │   │              ?overview=full&geometries=polyline6
-        │   │              (Note: OSRM uses lng,lat order!)
-        │   │
-        │   ├── decodePolyline6() — OSRM uses higher precision (÷ 1,000,000)
-        │   └── Returns DecodedRoute(...)
+        │   getOsrmRoute() → decodePolyline6() → DecodedRoute
         │
         └── Returns the successful DecodedRoute to NavigationFragment
 
 STEP 7: NavigationFragment displays the route
         ├── Draws GREEN polyline on map (color: #4CAF50, width: 5px)
-        │   map.addPolyline(polylinePoints)
         ├── Adds markers: 📍 "You" → ⚡ "Station"
-        ├── Displays distance: formatDistance(12.3) → "12.3 km"
-        ├── Displays duration: formatDuration(25.3) → "25 min"
-        │   (if > 60 min: formatDuration(95) → "1h 35m")
+        ├── Displays distance and duration
         └── Animates camera to fit entire route on screen
-            CameraUpdateFactory.newLatLngBounds(routeBounds, padding=100)
 
-STEP 8: User taps "Start Navigation"
+STEP 8: displayEnergyFeasibility(distanceKm, durationMinutes)
+        ├── Reads vehicle data from previousBackStackEntry.savedStateHandle:
+        │   ├── vehicleId = "tata_nexon_lr"
+        │   └── batteryPercent = 80.0
+        ├── Finds vehicle: VehicleProfile.findById(vehicleId)
+        ├── Sets acOn = vehicle.hasAC (true for cars, false for scooters)
+        ├── Calls RangeCalculator.isRouteFeasible(
+        │       vehicle, batteryPercent, routeDistanceKm, routeDurationMinutes,
+        │       temperatureC=35.0, acOn=vehicle.hasAC, safetyMargin=0.0
+        │   )
+        │   └── Uses physics-based calculateEnergyConsumption():
+        │       Energy = RollingResistance + AeroDrag + Acceleration + Electronics + AC
+        │       (uses vehicle.curbWeightKg, frontalAreaM2, dragCoefficient)
+        └── Displays energy feasibility card:
+            ├── tvVehicleInfo: "Tata Nexon EV Max • 80% battery"
+            ├── tvEnergyStatus: "✅ Comfortable — arrive with 65% battery"
+            ├── tvArrivalBattery: "Arrival Battery: 65%"
+            ├── tvEnergyRequired: "Energy Required: 1.938 kWh"
+            ├── tvEnergyAvailable: "Energy Available: 32.400 kWh"
+            └── tvTrafficCondition: "Light Traffic (avg 30 km/h)"
+
+STEP 9: User taps "Start Navigation"
         └── Opens Google Maps / Waze with turn-by-turn directions
             Intent(ACTION_VIEW, "google.navigation:q=17.4399,78.4983")
 ```
@@ -487,10 +488,11 @@ STEP 3: User taps ⭐ Favorite button
 | | `onMarkerClick()` | When user taps a pin → loads station details in bottom sheet | User tap |
 | | `setupSearchBar()` | Configures place autocomplete search | onViewCreated |
 | **VehicleInputFragment** | `setupManufacturerDropdown()` | Loads manufacturer list from VehicleProfile.groupedByManufacturer() | onViewCreated |
-| | `setupBatterySlider()` | Battery % slider (0-100), triggers updateRange() on every change | onViewCreated |
+| | `setupBatterySlider()` | Battery % slider (5-100, step 5), triggers updateRange() on every change | onViewCreated |
 | | `updateRange()` | Calls RangeCalculator.calculateRange() → displays result | Slider/toggle change |
-| | `applyFilter()` | Saves range_filter_km to savedStateHandle → navigates back | Apply button |
+| | `applyFilter()` | Saves range_filter_km, vehicle_id, battery_percent to savedStateHandle | Apply button |
 | **NavigationFragment** | `fetchRoute()` | Gets GPS, loads API key, calls RouteService, draws polyline | onViewCreated |
+| | `displayEnergyFeasibility()` | Reads vehicle from savedStateHandle, calls isRouteFeasible(), shows card | fetchRoute |
 | | `formatDistance(km)` | 0.5 → "500 m", 12.3 → "12.3 km" | fetchRoute |
 | | `formatDuration(min)` | 25 → "25 min", 95 → "1h 35m" | fetchRoute |
 
@@ -503,7 +505,9 @@ STEP 3: User taps ⭐ Favorite button
 | | `insertFavorite()` | Saves station to Room DB favorites table | MapFragment |
 | | `deleteFavorite()` | Removes station from favorites | MapFragment |
 | | `toggleFilters()` | Switches between no filters / custom filters | Filter button |
-| **RangeCalculator** | `calculateRange()` | Main calculation: vehicle + battery% + AC + temp + mode → km | VehicleInputFragment |
+| **RangeCalculator** | `calculateRange()` | Simplified range: vehicle + battery% + AC + temp + mode → km | VehicleInputFragment |
+| | `calculateEnergyConsumption()` | Physics-based: mass + drag + frontal area + AC → energy in kWh | isRouteFeasible |
+| | `isRouteFeasible()` | Full feasibility check: returns status, arrival %, energy breakdown | NavigationFragment |
 | | `isStationReachable()` | Can user reach a station? (includes 10% safety margin) | MarkerUtils |
 | | `remainingBatteryPercent()` | What % battery left after driving X km? | Detail screen |
 | **RouteService** | `getRoute()` | Orchestrator: tries Google first, falls back to OSRM | NavigationFragment |
@@ -537,6 +541,7 @@ STEP 3: User taps ⭐ Favorite button
 | File | Function | What It Does | Called By |
 |------|----------|-------------|-----------|
 | **MarkerUtils** | `updateChargepoints()` | Add/remove markers based on data + range filter | chargepoints setter |
+| | `clearAll()` | Remove ALL markers from map — used in onMapReady lifecycle cleanup | MapFragment.onMapReady |
 | | `isInRange()` | Check if station is within user's battery range | updateChargepoints |
 | | `makeIcon()` | Generate marker bitmap with correct color, size, star | updateChargepoints |
 | | `updateChargerIcons()` | Refresh icons when filter/favorite changes | Filter/fav change |
@@ -570,7 +575,22 @@ VehicleProfile (one EV model):
     manufacturer: "Tata",
     batteryCapacityKwh: 40.5,
     officialRangeKm: 437.0,
-    efficiencyKwhPer100Km: 12.5
+    efficiencyKwhPer100Km: 12.5,
+    vehicleType: CAR,
+    curbWeightKg: 1580.0,
+    frontalAreaM2: 2.3,
+    dragCoefficient: 0.35
+    // hasAC: true (computed: vehicleType != SCOOTER)
+}
+
+FeasibilityResult (from isRouteFeasible):
+{
+    isFeasible: true,
+    energyRequired: 0.015,     // kWh (physics-based)
+    energyAvailable: 0.185,    // kWh (battery × percent)
+    arrivalBatteryPercent: 2.0,
+    statusMessage: "✅ Comfortable — arrive with 2% battery",
+    trafficFactor: "Light Traffic (avg 22 km/h)"
 }
 
 DecodedRoute (one calculated route):
@@ -677,23 +697,23 @@ Base efficiency × 1.15 (highway) × 1.12 (extreme heat) × 1.10 (AC) × 1.15 (r
 | `EvMapApplication.kt` | App startup: dark mode, language, background workers, crash reporting |
 | `MapsActivity.kt` | Single host activity: navigation, deep links, external app launching |
 | **Model Layer** | |
-| `model/VehicleProfile.kt` | 24 Indian EV models with battery and efficiency specs |
-| `model/RangeCalculator.kt` | Range estimation with India-specific temperature/AC/driving corrections |
+| `model/VehicleProfile.kt` | 24 Indian EV models with battery specs, VehicleType enum, per-vehicle physics (mass, drag, frontal area), hasAC |
+| `model/RangeCalculator.kt` | Physics-based energy model (mass, drag, AC) + simplified range estimation with India-specific corrections |
 | `model/ChargersModel.kt` | Data classes: ChargeLocation, Chargepoint, Address, Cost, OpeningHours |
 | **API Layer** | |
 | `api/ChargepointApi.kt` | Interface — contract that all data sources must implement |
 | `api/openchargemap/OpenChargeMapApi.kt` | OpenChargeMap HTTP client + model converter + clustering |
 | `api/RouteService.kt` | Google Directions + OSRM routing with polyline decoding |
 | **Fragment Layer** | |
-| `fragment/MapFragment.kt` | Home screen — map, markers, search, filters, bottom sheet |
-| `fragment/NavigationFragment.kt` | Route preview — polyline on map, distance, duration, start nav |
-| `fragment/VehicleInputFragment.kt` | Vehicle picker — dropdown, battery slider, range calc, apply filter |
+| `fragment/MapFragment.kt` | Home screen — map, markers, search, filters, vehicle data forwarding, clearAll() lifecycle |
+| `fragment/NavigationFragment.kt` | Route preview — polyline, distance, duration, energy feasibility card, vehicle.hasAC |
+| `fragment/VehicleInputFragment.kt` | Vehicle picker — dropdown, battery slider (5-100%), range calc, 3-value return |
 | `fragment/FilterFragment.kt` | Connector type and power level filter UI |
 | `fragment/OnboardingFragment.kt` | First-run welcome screen and data source selection |
 | **ViewModel Layer** | |
 | `viewmodel/MapViewModel.kt` | Map business logic — load stations, filters, favorites, map position |
 | **UI Utilities** | |
-| `ui/MarkerUtils.kt` | Map marker manager — add/remove/hide pins, range filtering, clustering |
+| `ui/MarkerUtils.kt` | Map marker manager — add/remove/hide pins, range filtering, clustering, clearAll() cleanup |
 | `ui/IconGenerators.kt` | Bitmap generation for colored station pin icons |
 | **Storage Layer** | |
 | `storage/Database.kt` | Room database definition — tables, DAOs, migrations, type converters |

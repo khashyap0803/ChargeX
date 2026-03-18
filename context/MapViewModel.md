@@ -57,7 +57,13 @@ Results arrive → chargepoints LiveData is updated
          │
          ▼
 MapFragment observes the change → MarkerManager updates markers
+         │
+         ▼
+MarkerManager applies range filter (if active) using isInRange()
+         └── If view was recreated: clearAll() removes stale markers first
 ```
+
+> **Note**: The range filter is NOT in MapViewModel — it's applied client-side by `MarkerManager` in `MarkerUtils.kt`. MapViewModel only provides the full list of chargepoints; the filtering happens at the UI layer.
 
 ---
 
@@ -124,7 +130,10 @@ When the filter changes, chargepoints are either:
 ```
 MapViewModel.kt
     │
-    ├──◀ MapFragment.kt         — UI observes all LiveData properties
+    ├──◀ MapFragment.kt         — UI observes all LiveData properties.
+    │                              MapFragment also handles range filter,
+    │                              vehicle data forwarding, and clearAll()
+    │                              separately from ViewModel.
     │
     ├──▶ ChargepointApi.kt      — Fetches charger data from APIs
     │
@@ -136,3 +145,5 @@ MapViewModel.kt
     │
     └──▶ ChargersModel.kt       — Uses ChargeLocation and related data models
 ```
+
+> **What MapViewModel does NOT handle**: Range filter, vehicle data persistence, energy feasibility, and marker lifecycle — these are handled by `MapFragment` (via `pendingRangeFilterKm`, `pendingVehicleId`, `pendingBatteryPercent`) and `MarkerUtils` (`clearAll()`, `isInRange()`).

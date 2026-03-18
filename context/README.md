@@ -13,10 +13,9 @@ This directory contains detailed documentation for every important source file i
 ### Model Layer (Data Classes & Business Logic)
 | File | Description |
 |------|-------------|
-| [VehicleProfile.md](VehicleProfile.md) | EV vehicle database with battery specs for Indian cars |
+| [VehicleProfile.md](VehicleProfile.md) | EV vehicle database with battery specs, **VehicleType enum**, and **per-vehicle physics parameters** (mass, drag, frontal area) |
 | [ChargersModel.md](ChargersModel.md) | Core data models — `ChargeLocation`, `Chargepoint`, `Address`, etc. |
-| [RangeCalculator.md](RangeCalculator.md) | Range estimation engine with India-specific corrections |
-| [FiltersModel.md](FiltersModel.md) | Filter system for charging station search |
+| [RangeCalculator.md](RangeCalculator.md) | **Physics-based** range and energy estimation engine with per-vehicle parameters and India-specific corrections |
 
 ### API Layer (Network & Data Sources)
 | File | Description |
@@ -28,10 +27,9 @@ This directory contains detailed documentation for every important source file i
 ### Fragment Layer (UI Screens)
 | File | Description |
 |------|-------------|
-| [MapFragment.md](MapFragment.md) | Main map screen — the heart of the app |
-| [NavigationFragment.md](NavigationFragment.md) | In-app route display and navigation |
-| [VehicleInputFragment.md](VehicleInputFragment.md) | Vehicle selection and range calculation UI |
-| [FilterFragment.md](FilterFragment.md) | Connector type & power filtering UI |
+| [MapFragment.md](MapFragment.md) | Main map screen — markers, range filtering, **vehicle data forwarding**, `clearAll()` lifecycle cleanup |
+| [NavigationFragment.md](NavigationFragment.md) | In-app route display, navigation, and **energy feasibility card** with vehicle-aware AC handling |
+| [VehicleInputFragment.md](VehicleInputFragment.md) | Vehicle selection (24 models), battery slider (5-100%), and range calculation UI |
 
 ### ViewModel Layer
 | File | Description |
@@ -41,8 +39,7 @@ This directory contains detailed documentation for every important source file i
 ### UI Utilities
 | File | Description |
 |------|-------------|
-| [MarkerUtils.md](MarkerUtils.md) | Map marker management — icons, clustering, range filtering |
-| [IconGenerators.md](IconGenerators.md) | Bitmap generation for charger markers |
+| [MarkerUtils.md](MarkerUtils.md) | Map marker management — icons, clustering, range filtering, **`clearAll()` for lifecycle cleanup** |
 
 ### Storage Layer
 | File | Description |
@@ -54,6 +51,11 @@ This directory contains detailed documentation for every important source file i
 | File | Description |
 |------|-------------|
 | [BuildGradle.md](BuildGradle.md) | Build configuration — flavors, API keys, dependencies |
+
+### Architecture
+| File | Description |
+|------|-------------|
+| [METHODOLOGY_AND_ARCHITECTURE.md](METHODOLOGY_AND_ARCHITECTURE.md) | Complete system architecture, methodology, workflows, and function-level detail |
 
 ---
 
@@ -71,11 +73,12 @@ This directory contains detailed documentation for every important source file i
 │                                                               │
 │  MapFragment ─────── MapViewModel ────── ChargepointApi      │
 │  NavigationFrag ──── RouteService ────── Google Directions    │
+│       └── RangeCalculator.isRouteFeasible() + VehicleProfile │
 │  VehicleInputFrag ── RangeCalculator ─── VehicleProfile DB   │
 │  FilterFragment ──── FiltersModel ────── PreferenceDataSource│
 │                                                               │
 │  ┌──────────────────────────────────────────────────────────┐│
-│  │  UI Utilities: MarkerUtils, IconGenerators, Clustering   ││
+│  │  UI Utilities: MarkerUtils (clearAll), IconGenerators     ││
 │  └──────────────────────────────────────────────────────────┘│
 │                                                               │
 │  ┌──────────────────────────────────────────────────────────┐│
@@ -88,7 +91,8 @@ This directory contains detailed documentation for every important source file i
 
 - **ChargeLocation**: A single charging station (site) on the map
 - **Chargepoint**: One connector/socket at a station (a station can have many)
-- **VehicleProfile**: Specs for an EV model (battery size, efficiency)
-- **RangeCalculator**: Estimates how far a vehicle can go based on battery, weather, driving mode
-- **MarkerUtils**: Manages all the pins on the map, including hiding out-of-range ones
+- **VehicleProfile**: Specs for an EV model — battery size, efficiency, **VehicleType** (SCOOTER/CAR/SUV), **physics params** (mass, drag, frontal area), **hasAC**
+- **RangeCalculator**: Estimates range using efficiency factors AND calculates energy using a **physics-based model** with per-vehicle parameters
+- **MarkerUtils**: Manages all the pins on the map, including hiding out-of-range ones and **clearing stale markers** via `clearAll()`
 - **RouteService**: Calculates driving routes using Google Maps API (with OSRM fallback)
+- **Energy Feasibility**: NavigationFragment shows arrival battery %, energy required/available, vehicle info, using `vehicle.hasAC` for AC handling

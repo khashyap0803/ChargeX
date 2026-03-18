@@ -76,14 +76,17 @@ fun openUrl(url: String, rootView: View, preferBrowser: Boolean = false) {
 MapsActivity (Single Activity)
     │
     └── NavHostFragment
-        │
-        ├── MapFragment          (home screen — the map)
-        ├── NavigationFragment    (route preview)
-        ├── VehicleInputFragment  (vehicle selection)
-        ├── FilterFragment        (connector filters)
-        ├── FavoritesFragment     (saved stations)
-        ├── OnboardingFragment    (first-run setup)
-        └── Settings Fragments    (app preferences)
+         │
+         ├── MapFragment          (home screen — map, range filtering,
+         │                         vehicle data forwarding, clearAll())
+         ├── NavigationFragment    (route preview + energy feasibility
+         │                         card with vehicle-aware AC handling)
+         ├── VehicleInputFragment  (vehicle selection, 24 models,
+         │                         returns range + vehicle + battery)
+         ├── FilterFragment        (connector filters)
+         ├── FavoritesFragment     (saved stations)
+         ├── OnboardingFragment    (first-run setup)
+         └── Settings Fragments    (app preferences)
 ```
 
 ---
@@ -109,6 +112,7 @@ MapsActivity.kt
     ├──▶ MapFragment.kt          — The default/home fragment
     │
     ├──▶ NavigationFragment.kt   — Opened when user taps "Navigate"
+    │                                (displays route + energy feasibility card)
     │
     ├──▶ NavHostFragment.kt      — Manages fragment back stack
     │

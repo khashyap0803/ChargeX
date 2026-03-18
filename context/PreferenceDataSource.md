@@ -66,7 +66,9 @@ PreferenceDataSource.kt
     │
     ├──◀ EvMapApplication.kt   — Reads dark mode and language at startup
     │
-    ├──◀ MapFragment.kt         — Reads/writes lastPosition, zoom, filter state
+    ├──◀ MapFragment.kt         — Reads/writes lastPosition, zoom, filter state.
+    │                              (Note: vehicle data & range filter are stored
+    │                              separately via savedStateHandle, not here.)
     │
     ├──◀ MapViewModel.kt        — Reads dataSource, filterStatus
     │

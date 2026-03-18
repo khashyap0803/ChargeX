@@ -116,7 +116,8 @@ build.gradle.kts
     │
     ├──▶ gradle.properties     — API keys are read from here
     │
-    ├──▶ NavigationFragment.kt — Uses "google_directions_key" resource
+    ├──▶ NavigationFragment.kt — Uses "google_directions_key" for route
+    │                            fetching + energy feasibility computation
     │
     ├──▶ RouteService.kt       — Receives API key for Google Directions
     │

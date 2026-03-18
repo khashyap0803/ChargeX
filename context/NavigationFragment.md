@@ -1,7 +1,7 @@
 # NavigationFragment.kt
 
 > **File**: `app/src/main/java/net/vonforst/evmap/fragment/NavigationFragment.kt`  
-> **Purpose**: Displays the in-app navigation screen with route preview, distance, duration, and a button to launch turn-by-turn navigation.
+> **Purpose**: Displays the in-app navigation screen with route preview, distance, duration, **energy feasibility card**, and a button to launch turn-by-turn navigation.
 
 ---
 
@@ -11,6 +11,12 @@ When a user taps "Navigate" on a charging station, this fragment shows:
 - A **map with the route drawn** as a green polyline
 - **Distance** (e.g., "12.5 km")
 - **Duration** (e.g., "25 min")
+- **Energy feasibility card** showing:
+  - Vehicle name + input battery % (e.g., "Ather 450X • 5% battery")
+  - Status (✅ Comfortable / ⚠️ Tight / ❌ Insufficient)
+  - Arrival battery %
+  - Energy required vs available (kWh)
+  - Traffic conditions
 - **Start Navigation** button to open Google Maps/other nav apps
 
 ---
@@ -23,8 +29,18 @@ When a user taps "Navigate" on a charging station, this fragment shows:
 │    📍 ─── green line ──── ⚡    │
 │   (you)                (station) │
 ├──────────────────────────────────┤
-│  Distance: 12.5 km              │
-│  Duration: 25 min               │
+│  Distance: 1.8 km               │
+│  Duration: 5 min                 │
+│                                  │
+│  ┌── ⚡ Energy Feasibility ───┐ │
+│  │ Ather 450X • 5% battery    │ │
+│  │ ✅ Comfortable — arrive    │ │
+│  │    with 2% battery         │ │
+│  │ Arrival Battery: 2%        │ │
+│  │ Energy Required: 0.015 kWh │ │
+│  │ Energy Available: 0.185 kWh│ │
+│  │ Light Traffic (avg 22 km/h)│ │
+│  └────────────────────────────┘ │
 │                                  │
 │  [  🧭 Start Navigation  ]      │
 └──────────────────────────────────┘
@@ -35,8 +51,8 @@ When a user taps "Navigate" on a charging station, this fragment shows:
 ## How It Works (Step by Step)
 
 ```
-1. Fragment receives destination coordinates via Safe Args
-   (destLat, destLng — the charging station's location)
+1. Fragment receives destination coordinates + station name via Safe Args
+   (destLat, destLng, stationName)
          │
          ▼
 2. Get user's current GPS location
@@ -56,7 +72,8 @@ When a user taps "Navigate" on a charging station, this fragment shows:
    ├── Add "Your Location" marker at origin
    ├── Display distance and duration text
    ├── Animate camera to fit entire route
-   └── Enable "Start Navigation" button
+   ├── Enable "Start Navigation" button
+   └── Call displayEnergyFeasibility(distanceKm, durationMinutes)
          │
    If route is null (both APIs failed):
    └── Show error: "Could not calculate route"
@@ -64,105 +81,104 @@ When a user taps "Navigate" on a charging station, this fragment shows:
 
 ---
 
-## Key Functions
+## Energy Feasibility Display
 
-### `fetchRoute()` — Main route loading function
+### `displayEnergyFeasibility(distanceKm, durationMinutes)`
 
-This is the core function that orchestrates everything:
+This is the key function that connects the route data with the physics-based energy model:
 
 ```kotlin
-private fun fetchRoute(originLat: Double, originLng: Double) {
-    // 1. Show loading spinner
-    // 2. Get API key
-    // 3. Call RouteService.getRoute(...)
-    // 4. Display results or error
+private fun displayEnergyFeasibility(distanceKm: Double, durationMinutes: Double) {
+    // 1. Read vehicle data from MapFragment's savedStateHandle
+    val savedState = findNavController().previousBackStackEntry?.savedStateHandle
+    val vehicleId = savedState?.get<String>("vehicle_id")
+    val batteryPercent = savedState?.get<Float>("battery_percent")?.toDouble()
+
+    // 2. Find vehicle profile
+    val vehicle = VehicleProfile.findById(vehicleId)
+
+    // 3. Use vehicle's hasAC property (scooters = false, cars = true)
+    val acOn = vehicle.hasAC
+
+    // 4. Calculate feasibility using physics model
+    val result = RangeCalculator.isRouteFeasible(
+        vehicle = vehicle,
+        batteryPercent = batteryPercent,
+        routeDistanceKm = distanceKm,
+        routeDurationMinutes = durationMinutes,
+        temperatureC = 35.0,
+        acOn = acOn,           // ← Uses vehicle.hasAC, NOT hardcoded true
+        safetyMargin = 0.0     // ← Zero because calculateRange already has corrections
+    )
+
+    // 5. Display results
+    binding.tvVehicleInfo.text = "${vehicle.name} • ${batteryPercent.toInt()}% battery"
+    binding.tvEnergyStatus.text = result.statusMessage
+    binding.tvArrivalBattery.text = "Arrival Battery: ${result.arrivalBatteryPercent.toInt()}%"
+    binding.tvEnergyRequired.text = "Energy Required: %.3f kWh".format(result.energyRequired)
+    binding.tvEnergyAvailable.text = "Energy Available: %.3f kWh".format(result.energyAvailable)
 }
 ```
 
-### `formatDistance(km: Double): String`
+### Data Flow: Vehicle Data Path
 
+```
+VehicleInputFragment                    MapFragment                    NavigationFragment
+─────────────────                       ───────────                    ──────────────────
+     │                                       │                              │
+     │ User taps "Apply Filter"              │                              │
+     ▼                                       │                              │
+savedStateHandle.set(                        │                              │
+  "vehicle_id", "ather_450x"                 │                              │
+  "battery_percent", 5.0f                    │                              │
+)                                            │                              │
+     │                                       ▼                              │
+     └──────────────────────────▶  pendingVehicleId = "ather_450x"         │
+                                   pendingBatteryPercent = 5.0f             │
+                                            │                              │
+                                   User taps Directions FAB                │
+                                            │                              │
+                                   currentBackStackEntry                   │
+                                   .savedStateHandle.set(                  │
+                                     "vehicle_id", pendingVehicleId        │
+                                     "battery_percent", pendingBatteryPct  │
+                                   )                                       │
+                                            │                              │
+                                            └──────────────────────────▶  previousBackStackEntry
+                                                                           .savedStateHandle.get(
+                                                                             "vehicle_id"
+                                                                             "battery_percent"
+                                                                           )
+```
+
+### Why `acOn = vehicle.hasAC`?
+
+Previously, `acOn` was hardcoded to `true` for ALL vehicles. This meant scooters (which have no AC) were penalized by 1.8 kW of phantom AC power, causing massive energy overestimation. Now:
+- **Cars/SUVs**: `hasAC = true` → AC penalty applied
+- **Scooters**: `hasAC = false` → no AC penalty
+
+### Why 3 Decimal Places?
+
+For scooter-sized batteries (3.7 kWh at 5% = 0.185 kWh available), 1 decimal rounding (0.2 kWh) loses critical precision. With 3 decimals: "Energy Required: 0.015 kWh" vs "Energy Available: 0.185 kWh" — the user can clearly see the numbers.
+
+---
+
+## Other Key Functions
+
+### `fetchRoute()` — Main route loading function
+
+Orchestrates GPS location, API key, route service call, and display.
+
+### `formatDistance(km: Double): String`
 ```kotlin
 formatDistance(0.5)   → "500 m"
 formatDistance(12.3)  → "12.3 km"
-formatDistance(100.0) → "100.0 km"
 ```
 
 ### `formatDuration(minutes: Double): String`
-
 ```kotlin
 formatDuration(13.5)  → "13 min"
 formatDuration(90.0)  → "1h 30m"
-formatDuration(125.0) → "2h 5m"
-```
-
----
-
-## Navigation Arguments (Safe Args)
-
-The fragment receives these arguments from `MapFragment`:
-
-```kotlin
-data class NavigationFragmentArgs(
-    val destLat: Float,    // Charging station latitude
-    val destLng: Float     // Charging station longitude
-)
-```
-
----
-
-## API Key Loading
-
-```kotlin
-val googleApiKey = try {
-    val keyResId = requireContext().resources.getIdentifier(
-        "google_directions_key", "string", requireContext().packageName
-    )
-    if (keyResId != 0) requireContext().getString(keyResId) else null
-} catch (e: Exception) { null }
-```
-
-This loads the `google_directions_key` string resource that's injected by `build.gradle.kts` from `gradle.properties`.
-
----
-
-## Route Display
-
-The route is drawn as a **green polyline** on the MapLibre map:
-
-```kotlin
-map.addPolyline(
-    PolylineOptions()
-        .addAll(polylinePoints)         // List of LatLng points
-        .color(Color.parseColor("#4CAF50"))  // Material Green
-        .width(5f)                      // Line thickness
-)
-```
-
-The camera is animated to show the entire route:
-
-```kotlin
-val boundsBuilder = LatLngBounds.Builder()
-polylinePoints.forEach { boundsBuilder.include(it) }
-map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100))
-```
-
----
-
-## Debug Logging
-
-The fragment logs extensively with tag `NavigationFrag`:
-
-```
-NavigationFrag: ============ NAVIGATION FRAGMENT ============
-NavigationFrag: Location permission: GRANTED
-NavigationFrag: GPS Location: (17.3850, 78.4867)
-NavigationFrag: google_directions_key resource ID: 2131034122
-NavigationFrag: Google API key found (length=39): AIzaSyBxx...
-NavigationFrag: Calling RouteService.getRoute()...
-NavigationFrag: RouteService returned in 1234ms
-NavigationFrag: ✅ Route received: 12.50 km, 25.3 min, 156 points
-NavigationFrag: Drawing polyline with 156 points on map
-NavigationFrag: Camera animated to fit route bounds
 ```
 
 ---
@@ -173,9 +189,14 @@ NavigationFrag: Camera animated to fit route bounds
 NavigationFragment.kt
     │
     ├──◀ MapFragment.kt     — User taps "Navigate" → opens this fragment
-    │                          with destination coordinates
+    │                          with destination coordinates AND vehicle data
+    │                          (via currentBackStackEntry.savedStateHandle)
     │
     ├──▶ RouteService.kt     — Calls getRoute() to fetch the driving route
+    │
+    ├──▶ RangeCalculator.kt  — Calls isRouteFeasible() for energy card
+    │
+    ├──▶ VehicleProfile.kt   — Uses findById() and vehicle.hasAC
     │
     ├──▶ build.gradle.kts    — API key comes from gradle.properties
     │
@@ -187,10 +208,12 @@ NavigationFragment.kt
 
 ## Key Design Decisions
 
-1. **In-app preview first**: Shows the route inside the app before launching external navigation, so users can see distance/duration without leaving the app.
+1. **Energy card with vehicle info**: Shows "Ather 450X • 5% battery" so users can confirm their selection was correctly received. Previously, users saw "2% arrival battery" and confused it with their input (5%).
 
-2. **Graceful error handling**: If both routing APIs fail, shows a user-friendly error message instead of crashing.
+2. **Vehicle-aware AC**: Uses `vehicle.hasAC` instead of hardcoded `true`, preventing scooters from being penalized for nonexistent AC.
 
-3. **Binding null check**: After the async route fetch, checks `if (_binding == null)` to handle the case where the user left the screen while the route was loading.
+3. **Zero safety margin**: `safetyMargin=0.0` because `calculateRange` already applies real-world corrections. Adding margin on small batteries (3.7 kWh at 5%) would show negative energy.
 
-4. **IO dispatcher**: Route fetching runs on `Dispatchers.IO` to avoid blocking the main thread.
+4. **In-app preview first**: Shows the route inside the app before launching external navigation.
+
+5. **Graceful degradation**: If no vehicle data is available, the energy card is hidden entirely.

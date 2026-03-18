@@ -195,10 +195,14 @@ ChargersModel.kt (data models)
     │
     ├──▶ MapFragment            — Displayed on the map as markers
     │
-    ├──▶ MarkerUtils            — Uses ChargeLocation for marker positioning
-    │                              and icon generation
+    ├──▶ MarkerUtils            — Uses ChargeLocation for marker positioning,
+    │                              icon generation, and range filtering
+    │                              (isInRange + clearAll for lifecycle)
     │
     ├──▶ MapViewModel           — Loads and holds List<ChargeLocation> as LiveData
+    │
+    ├──▶ NavigationFragment     — ChargeLocation coordinates used as destination
+    │                              for route + energy feasibility calculation
     │
     └──▶ Detail screens         — Shows full station info when user taps a marker
 ```

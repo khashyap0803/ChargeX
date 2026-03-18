@@ -1,15 +1,28 @@
 # VehicleProfile.kt
 
 > **File**: `app/src/main/java/net/vonforst/evmap/model/VehicleProfile.kt`  
-> **Purpose**: Contains a hardcoded database of popular Indian EV models with their battery and efficiency specifications.
+> **Purpose**: Contains a hardcoded database of popular Indian EV models with their battery, efficiency, and **physics specifications** for accurate energy and range calculations.
 
 ---
 
 ## What Is This File?
 
-`VehicleProfile` is a **data class** that represents one electric vehicle model. It stores the vehicle's name, manufacturer, battery size, official range, and energy efficiency. The app uses this data to calculate how far the user can drive on their current battery charge.
+`VehicleProfile` is a **data class** that represents one electric vehicle model. It stores the vehicle's name, manufacturer, battery size, official range, energy efficiency, and **physics parameters** (mass, frontal area, drag coefficient). The app uses this data to calculate how far the user can drive on their current battery charge and whether a route is energy-feasible.
 
-Think of it like a **vehicle catalog** built into the app — the user picks "Tata Nexon EV Max" from a dropdown, and the app knows it has a 40.5 kWh battery.
+Think of it like a **vehicle catalog** built into the app — the user picks "Tata Nexon EV Max" from a dropdown, and the app knows it has a 40.5 kWh battery, weighs 1580 kg, and has a frontal area of 2.3 m².
+
+---
+
+## VehicleType Enum
+
+```kotlin
+enum class VehicleType { SCOOTER, CAR, SUV }
+```
+
+Categorizes vehicles so the energy model can apply type-specific physics:
+- **SCOOTER**: No AC, low mass (~108 kg), small frontal area (0.5 m²), 0.05 kW electronics
+- **CAR**: Has AC (1.8 kW), medium mass (~1200-1600 kg), 2.0-2.3 m² frontal area
+- **SUV**: Has AC (1.8 kW), heavier mass (~1700-2500 kg), 2.5-2.8 m² frontal area
 
 ---
 
@@ -22,20 +35,30 @@ data class VehicleProfile(
     val manufacturer: String,            // Brand, e.g. "Tata"
     val batteryCapacityKwh: Double,      // Total battery size in kWh, e.g. 40.5
     val officialRangeKm: Double,         // ARAI/WLTP rated range in km, e.g. 437
-    val efficiencyKwhPer100Km: Double    // Energy consumption per 100 km, e.g. 12.5
+    val efficiencyKwhPer100Km: Double,   // Energy consumption per 100 km, e.g. 12.5
+    val vehicleType: VehicleType,        // SCOOTER, CAR, or SUV
+    val curbWeightKg: Double,            // Vehicle weight without passengers, in kg
+    val frontalAreaM2: Double,           // Frontal cross-section area in m²
+    val dragCoefficient: Double          // Aerodynamic drag coefficient (Cd)
 )
 ```
 
+### Computed Properties
+
+| Property | Logic | Purpose |
+|----------|-------|---------|
+| `hasAC` | `vehicleType != VehicleType.SCOOTER` | Scooters don't have AC — used to skip AC penalty in energy calculations |
+
 ### What Each Field Means
 
-| Field | Example | Meaning |
-|-------|---------|---------|
-| `id` | `"tata_nexon_lr"` | Internal unique key used to save/retrieve the user's selected vehicle |
-| `name` | `"Nexon EV Max (Long Range)"` | Shown in the dropdown menu to the user |
-| `manufacturer` | `"Tata"` | Used to group vehicles by brand in the UI |
-| `batteryCapacityKwh` | `40.5` | Total energy storage in kilowatt-hours |
-| `officialRangeKm` | `437.0` | Manufacturer-claimed range (ARAI certified for India) |
-| `efficiencyKwhPer100Km` | `12.5` | How much energy the car uses per 100 km of driving |
+| Field | Example (Car) | Example (Scooter) | Meaning |
+|-------|--------------|-------------------|---------|
+| `id` | `"tata_nexon_lr"` | `"ather_450x"` | Internal unique key |
+| `vehicleType` | `CAR` | `SCOOTER` | Determines physics model parameters |
+| `curbWeightKg` | `1580.0` | `108.0` | Vehicle weight — dominant factor in energy use |
+| `frontalAreaM2` | `2.3` | `0.5` | Air resistance area — cars are 4-5× larger than scooters |
+| `dragCoefficient` | `0.35` | `0.9` | Aerodynamic shape factor |
+| `hasAC` | `true` | `false` | Whether AC penalty applies |
 
 ---
 
@@ -62,6 +85,17 @@ INDIAN_EVS: List<VehicleProfile>
 
 **Total: 24 vehicles** covering cars, SUVs, and electric scooters available in India.
 
+### Physics Parameters by Vehicle Type
+
+| Vehicle | Type | Mass (kg) | Frontal Area (m²) | Cd | AC |
+|---------|------|-----------|-------------------|-----|-----|
+| Ather 450X | SCOOTER | 108 | 0.5 | 0.90 | No |
+| OLA S1 Pro | SCOOTER | 125 | 0.5 | 0.85 | No |
+| Tata Tiago EV | CAR | 1100 | 2.0 | 0.32 | Yes |
+| Tata Nexon EV Max | CAR | 1580 | 2.3 | 0.35 | Yes |
+| MG ZS EV | SUV | 1560 | 2.5 | 0.35 | Yes |
+| Audi e-tron | SUV | 2520 | 2.65 | 0.28 | Yes |
+
 ---
 
 ## Helper Functions
@@ -70,7 +104,6 @@ INDIAN_EVS: List<VehicleProfile>
 Finds a vehicle by its unique ID. Used when loading a previously saved vehicle selection.
 
 ```kotlin
-// Example: User opens app, their saved vehicle ID is "tata_nexon_lr"
 val vehicle = VehicleProfile.findById("tata_nexon_lr")
 // Returns: VehicleProfile(id="tata_nexon_lr", name="Nexon EV Max (Long Range)", ...)
 ```
@@ -90,11 +123,15 @@ val grouped = VehicleProfile.groupedByManufacturer()
 ```
 VehicleProfile.kt
     │
-    ├──▶ RangeCalculator.kt     — Takes a VehicleProfile to calculate range
-    │                              based on battery %, AC, driving mode, temperature
+    ├──▶ RangeCalculator.kt     — Takes a VehicleProfile to calculate range AND
+    │                              energy consumption using per-vehicle physics
+    │                              (mass, frontal area, drag, AC capability)
     │
     ├──▶ VehicleInputFragment.kt — Displays the vehicle selection dropdown UI
     │                              Uses groupedByManufacturer() and findById()
+    │
+    ├──▶ NavigationFragment.kt   — Uses vehicle.hasAC to determine AC penalty
+    │                              in energy feasibility calculation
     │
     └──▶ MapFragment.kt          — Receives the selected vehicle's range
                                    to filter charging stations on the map
@@ -113,45 +150,41 @@ VehicleInputFragment calls VehicleProfile.groupedByManufacturer()
          ▼
 Dropdown shows manufacturers: [Tata, MG, Hyundai, ...]
          │
-         ▼ User picks "Tata"
+         ▼ User picks "Ather"
          │
-Dropdown shows models: [Nexon EV Max, Nexon EV, Punch, Tiago, ...]
+Dropdown shows models: [450X]
          │
-         ▼ User picks "Nexon EV Max"
+         ▼ User picks "450X"
          │
-selectedVehicle = VehicleProfile(id="tata_nexon_lr", battery=40.5kWh, ...)
+selectedVehicle = VehicleProfile(
+    id="ather_450x", battery=3.7kWh, vehicleType=SCOOTER,
+    curbWeightKg=108, frontalAreaM2=0.5, hasAC=false
+)
          │
          ▼
-RangeCalculator.calculateRange(vehicle, batteryPercent=80%, acOn=true, ...)
+RangeCalculator.calculateRange(vehicle, batteryPercent=5%, acOn=false, ...)
          │
          ▼
-Estimated Range: ~285 km (shown to user)
+Estimated Range: ~4.5 km (shown to user)
          │
          ▼ User taps "Apply Filter"
          │
-MapFragment receives range_filter_km = 285.0
+MapFragment receives range_filter_km = 4.5
          │
          ▼
-MarkerUtils hides all charging stations beyond 285 km from user
+MarkerUtils hides all charging stations beyond 4.5 km from user
 ```
 
 ---
 
-## Why Efficiency Is Important
+## Why Physics Parameters Matter
 
-The `efficiencyKwhPer100Km` field is the most critical number for range calculation:
+Previously, `RangeCalculator` used **hardcoded car values** (1600 kg, 2.3 m², 1.8 kW AC) for ALL vehicles. This caused the Ather 450X (108 kg scooter) to show 0.3 kWh energy for a 1.8 km trip — **20× too high**. The correct value was ~0.015 kWh.
 
-- **Lower number = more efficient** (e.g., Ather 450X at 3.4 kWh/100km)
-- **Higher number = less efficient** (e.g., Audi e-tron at 24.0 kWh/100km)
-
-The `RangeCalculator` divides the available battery energy by this efficiency number to get the estimated range:
-
-```
-Range = (BatteryCapacity × BatteryPercent/100) ÷ (Efficiency/100)
-      = (40.5 kWh × 80/100) ÷ (12.5/100)
-      = 32.4 kWh ÷ 0.125 kWh/km
-      = 259.2 km (before real-world corrections)
-```
+With per-vehicle physics:
+- **Scooters**: 108 kg + 75 kg rider = 183 kg total mass, 0.5 m² frontal area, no AC
+- **Cars**: 1580 kg + 75 kg driver = 1655 kg total mass, 2.3 m² frontal area, 1.8 kW AC
+- **SUVs**: 2520 kg + 75 kg driver = 2595 kg total mass, 2.65 m² frontal area, 1.8 kW AC
 
 ---
 
@@ -162,3 +195,7 @@ Range = (BatteryCapacity × BatteryPercent/100) ÷ (Efficiency/100)
 2. **India-focused**: Only vehicles sold in India are included. Efficiency values are tuned for Indian driving conditions (city traffic, heat, AC usage).
 
 3. **Includes scooters**: OLA S1 Pro and Ather 450X are electric scooters with much smaller batteries (3-4 kWh vs 30-95 kWh for cars).
+
+4. **Per-vehicle physics**: Each vehicle defines its own mass, frontal area, and drag coefficient so the energy model produces accurate results across the full range from 108 kg scooters to 2520 kg SUVs.
+
+5. **hasAC computed property**: Returns `false` for scooters, `true` for cars/SUVs. This prevents the energy model from adding a 1.8 kW AC penalty to vehicles that don't have air conditioning.

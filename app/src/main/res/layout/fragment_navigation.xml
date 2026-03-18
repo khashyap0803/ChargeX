@@ -143,6 +143,88 @@
                 android:visibility="gone"
                 tools:text="Could not calculate route" />
 
+            <!-- Energy Feasibility Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardEnergyFeasibility"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="?attr/colorOutline"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⚡ Energy Feasibility"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorOnSurface" />
+
+                    <TextView
+                        android:id="@+id/tvVehicleInfo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textSize="12sp"
+                        android:textColor="?colorPrimary"
+                        android:textStyle="bold"
+                        tools:text="Ather 450X • 5% battery" />
+
+                    <TextView
+                        android:id="@+id/tvEnergyStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        tools:text="✅ Comfortable — arrive with 45% battery" />
+
+                    <TextView
+                        android:id="@+id/tvArrivalBattery"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textSize="12sp"
+                        android:textColor="?android:textColorSecondary"
+                        tools:text="Arrival Battery: 45%" />
+
+                    <TextView
+                        android:id="@+id/tvEnergyRequired"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="12sp"
+                        android:textColor="?android:textColorSecondary"
+                        tools:text="Energy Required: 8.3 kWh" />
+
+                    <TextView
+                        android:id="@+id/tvEnergyAvailable"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="12sp"
+                        android:textColor="?android:textColorSecondary"
+                        tools:text="Energy Available: 18.2 kWh" />
+
+                    <TextView
+                        android:id="@+id/tvTrafficCondition"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="12sp"
+                        android:textColor="?android:textColorSecondary"
+                        tools:text="Moderate Traffic (avg 28 km/h)" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Buttons -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnStartNavigation"

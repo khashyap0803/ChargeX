@@ -47,6 +47,13 @@
                 app:exitAnim="@animator/nav_default_exit_anim"
                 app:popEnterAnim="@animator/nav_default_pop_enter_anim"
                 app:popExitAnim="@animator/nav_default_pop_exit_anim" />
+            <action
+                android:id="@+id/action_map_to_booking_verification"
+                app:destination="@id/booking_verification_frag"
+                app:enterAnim="@animator/nav_default_enter_anim"
+                app:exitAnim="@animator/nav_default_exit_anim"
+                app:popEnterAnim="@animator/nav_default_pop_enter_anim"
+                app:popExitAnim="@animator/nav_default_pop_exit_anim" />
             <argument
                 android:name="locationName"
                 android:defaultValue="@null"
@@ -195,4 +202,9 @@
         android:name="net.vonforst.evmap.fragment.VehicleInputFragment"
         android:label="Vehicle Profile"
         tools:layout="@layout/fragment_vehicle_input" />
+    <fragment
+        android:id="@+id/booking_verification_frag"
+        android:name="net.vonforst.evmap.fragment.BookingVerificationFragment"
+        android:label="Booking Verification"
+        tools:layout="@layout/fragment_booking_verification" />
 </navigation>

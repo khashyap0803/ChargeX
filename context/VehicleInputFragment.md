@@ -8,10 +8,10 @@
 ## What Is This File?
 
 This is the **"Enter Vehicle Details"** screen. Users come here to tell the app:
-1. What car they drive
-2. How much battery they have
-3. Whether AC is on
-4. What driving mode they're in
+1. What vehicle they drive (from 24 Indian EV models)
+2. How much battery they have (5%–100% slider, step size 5)
+3. Whether AC is on (irrelevant for scooters, but the toggle is available)
+4. What driving mode they're in (city/highway/mixed)
 
 The app then calculates their estimated range and (optionally) applies it as a filter on the map to hide unreachable stations.
 
@@ -25,35 +25,36 @@ The app then calculates their estimated range and (optionally) applies it as a f
 │                                  │
 │  Select Manufacturer             │
 │  ┌──────────────────────────┐   │
-│  │  Tata                ▼   │   │
+│  │  Ather               ▼   │   │
 │  └──────────────────────────┘   │
 │                                  │
 │  Select Model                    │
 │  ┌──────────────────────────┐   │
-│  │  Nexon EV Max (LR)  ▼   │   │
+│  │  450X               ▼   │   │
 │  └──────────────────────────┘   │
 │                                  │
 │  ┌─── Vehicle Specs Card ────┐  │
-│  │ Battery: 40.5 kWh         │  │
-│  │ Efficiency: 12.5 kWh/100km│  │
-│  │ Official Range: 437 km    │  │
+│  │ Battery: 3.7 kWh          │  │
+│  │ Efficiency: 3.4 kWh/100km │  │
+│  │ Official Range: 105 km    │  │
 │  └───────────────────────────┘  │
 │                                  │
 │  ┌─── Battery Input Card ────┐  │
-│  │ Battery Level: 80%        │  │
-│  │ ────●─────────── slider   │  │
+│  │ Battery Level: 5%         │  │
+│  │ ●──────────────── slider  │  │
 │  │                            │  │
-│  │ AC: [ON] / OFF             │  │
+│  │ AC: ON / [OFF]             │  │
 │  │                            │  │
 │  │ Mode: [City] Highway Mixed │  │
 │  └───────────────────────────┘  │
 │                                  │
 │  ┌─── Range Result Card ─────┐  │
-│  │ Estimated Range: 215 km   │  │
-│  │ 80% battery • City • AC on│  │
+│  │ Estimated Range: 4 km     │  │
+│  │ 5% battery • City • AC off│  │
 │  └───────────────────────────┘  │
 │                                  │
-│  [ Apply Filter ] [Clear Filter] │
+│  [ Show Reachable Stations ]     │
+│  [ Clear Filter ]                │
 └──────────────────────────────────┘
 ```
 
@@ -65,30 +66,34 @@ The app then calculates their estimated range and (optionally) applies it as a f
 1. User opens the screen
          │
          ▼
-2. Manufacturer dropdown shows: [Tata, MG, Hyundai, Kia, ...]
+2. Manufacturer dropdown shows: [Ather, BYD, Hyundai, Kia, ...]
    (from VehicleProfile.groupedByManufacturer())
          │
-         ▼ User picks "Tata"
-3. Model dropdown shows: [Nexon EV Max, Nexon EV, Punch, ...]
+         ▼ User picks "Ather"
+3. Model dropdown shows: [450X]
          │
-         ▼ User picks "Nexon EV Max"
-4. Vehicle specs card appears showing battery, efficiency, range
+         ▼ User picks "450X"
+4. Vehicle specs card appears:
+   Battery: 3.7 kWh | Efficiency: 3.4 | Range: 105 km
          │
          ▼
-5. Battery slider and AC/mode controls become visible
-   User adjusts: 80%, AC on, City mode
+5. Battery slider (5%–100%, step 5) and AC/mode controls become visible
+   User adjusts: 5%, AC off, City mode
          │
          ▼
 6. Range is calculated in real-time:
-   RangeCalculator.calculateRange(vehicle, 80%, acOn=true, "city")
-   → "Estimated Range: 215 km"
+   RangeCalculator.calculateRange(vehicle, 5.0, acOn=false, "city")
+   → "Estimated Range: 4 km"
          │
-         ▼ User taps "Apply Filter"
-7. range_filter_km = 215.0 is passed back to MapFragment
+         ▼ User taps "Show Reachable Stations"
+7. Three values passed back to MapFragment:
+   ├── range_filter_km = 4.5f
+   ├── vehicle_id = "ather_450x"
+   └── battery_percent = 5.0f
          │
          ▼
-8. MapFragment passes this to MarkerUtils.rangeFilterKm
-   → All stations beyond 215 km from user are hidden
+8. MapFragment applies range filter AND stores vehicle data
+   for later forwarding to NavigationFragment
 ```
 
 ---
@@ -101,12 +106,12 @@ The app then calculates their estimated range and (optionally) applies it as a f
 - When a model is selected, shows specs and triggers range calculation
 
 ### `setupBatterySlider()`
-- Battery slider range: 0% to 100%
+- Battery slider range: **5% to 100%** (not 0%), step size: **5%**
 - Updates the range estimate live as the user moves the slider
 - Also listens to AC toggle and driving mode chip changes
 
 ### `setupButtons()`
-- **Apply Filter**: Calculates range, passes `range_filter_km` back to MapFragment via `savedStateHandle`
+- **Apply Filter**: Calculates range, passes `range_filter_km`, `vehicle_id`, and `battery_percent` back to MapFragment via `savedStateHandle`
 - **Clear Filter**: Passes `range_filter_km = -1` to indicate "no filter"
 
 ### `updateRange()`
@@ -129,30 +134,34 @@ private fun updateRange() {
 
 ---
 
-## Data Flow: How Range Filter Gets to the Map
+## Data Flow: How Values Get to the Map and Navigation
 
 ```
-VehicleInputFragment                    MapFragment
-─────────────────                       ───────────
-     │                                       │
-     │ User taps "Apply Filter"              │
-     │                                       │
-     ▼                                       │
-savedStateHandle.set(                        │
-  "range_filter_km", 215.0f                  │
-  "vehicle_id", "tata_nexon_lr"              │
-  "battery_percent", 80.0f                   │
-)                                            │
-     │                                       │
-     ▼                                       ▼
-findNavController().navigateUp()    savedStateHandle.getLiveData(
-     │                                "range_filter_km"
-     │                              ).observe { rangeKm ->
-     └──────────────────────────▶      markerManager.rangeFilterKm = rangeKm
-                                    }
+VehicleInputFragment                    MapFragment                    NavigationFragment
+─────────────────                       ───────────                    ──────────────────
+     │                                       │                              │
+     │ User taps "Apply Filter"              │                              │
+     ▼                                       │                              │
+previousBackStackEntry                       │                              │
+  .savedStateHandle.set(                     │                              │
+    "range_filter_km", 4.5f                  │                              │
+    "vehicle_id", "ather_450x"               │                              │
+    "battery_percent", 5.0f                  │                              │
+  )                                          │                              │
+     │                                       ▼                              │
+     │                             Observes via getLiveData()               │
+     └──────────────────────────▶  pendingRangeFilterKm = 4.5f             │
+                                   pendingVehicleId = "ather_450x"         │
+                                   pendingBatteryPercent = 5.0f            │
+                                            │                              │
+                                   markerManager.rangeFilterKm = 4.5f     │
+                                   → 192 visible, 144 filtered out        │
+                                            │                              │
+                                   User taps Directions on a station      │
+                                            │                              │
+                                   Forwards vehicle data ──────────────▶  Energy feasibility
+                                   via savedStateHandle                    card displayed
 ```
-
-The data flows **backwards through the navigation stack** using Jetpack Navigation's `savedStateHandle` — this is the standard Android pattern for returning results from a fragment.
 
 ---
 
@@ -162,11 +171,12 @@ The data flows **backwards through the navigation stack** using Jetpack Navigati
 VehicleInputFragment.kt
     │
     ├──▶ VehicleProfile.kt      — Gets the list of vehicles and their specs
+    │                              (including vehicleType, physics params)
     │
     ├──▶ RangeCalculator.kt     — Calculates range from vehicle + conditions
     │
-    ├──▶ MapFragment.kt         — Returns range_filter_km via savedStateHandle
-    │                              Map then filters visible stations
+    ├──▶ MapFragment.kt         — Returns range_filter_km, vehicle_id,
+    │                              battery_percent via savedStateHandle
     │
     └──▶ fragment_vehicle_input.xml — Layout with dropdowns, slider, chips
 ```
@@ -175,10 +185,12 @@ VehicleInputFragment.kt
 
 ## Key Design Decisions
 
-1. **Two-step dropdown**: Manufacturer first, then model — this avoids a single dropdown with 24+ items and makes it easier for users to find their car.
+1. **Two-step dropdown**: Manufacturer first, then model — avoids a single dropdown with 24+ items.
 
-2. **Real-time updates**: Range recalculates instantly when any input changes (battery slider, AC toggle, driving mode) — no need to press "Calculate".
+2. **Real-time updates**: Range recalculates instantly when any input changes — no need to press "Calculate".
 
-3. **savedStateHandle for results**: Uses the standard Android Navigation component pattern to pass data back to the previous fragment, rather than shared ViewModels or global state.
+3. **savedStateHandle for results**: Standard Android Navigation pattern to pass data back to the previous fragment.
 
-4. **Clear Filter option**: Users can remove the range filter without having to enter new vehicle details.
+4. **Slider minimum is 5%, not 0%**: Prevents edge cases where 0% battery produces division-by-zero or nonsensical 0 km ranges.
+
+5. **Three values passed back**: `range_filter_km` for map filtering, `vehicle_id` and `battery_percent` for energy feasibility display in NavigationFragment.

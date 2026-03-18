@@ -1,20 +1,22 @@
 # MapFragment.kt
 
 > **File**: `app/src/main/java/net/vonforst/evmap/fragment/MapFragment.kt`  
-> **Purpose**: The main map screen — the heart of the app. Displays charging stations on an interactive map with search, filtering, and charger detail views.
+> **Purpose**: The main map screen — the heart of the app. Displays charging stations on an interactive map with search, filtering, range-based station hiding, vehicle data persistence, and charger detail views.
 
 ---
 
 ## What Is This File?
 
-`MapFragment` is the **home screen** of ChargeX. It's the largest file in the project (~60KB) because it orchestrates:
+`MapFragment` is the **home screen** of ChargeX. It's the largest file in the project (~68KB) because it orchestrates:
 - Interactive map with charging station markers
 - Location tracking and permission handling
 - Search bar for finding places
 - Filter controls for connector types and power
 - Bottom sheet showing charger details
 - FABs (floating buttons) for vehicle input, my location, etc.
-- Range-based station filtering
+- Range-based station filtering with pending state management
+- Vehicle data forwarding to NavigationFragment
+- Marker lifecycle cleanup (clearAll)
 - Marker click handling
 
 ---
@@ -47,12 +49,36 @@
 
 ---
 
+## Key State Fields
+
+### Pending Fields (Survive View Recreation)
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `pendingRangeFilterKm` | `Float` | Range filter value from VehicleInputFragment. Applied in `onMapReady()` because savedStateHandle fires BEFORE the map is ready. |
+| `pendingUserLocation` | `LatLng?` | User's GPS location, cached so the range filter can use it even before the map's location engine fires. |
+| `pendingVehicleId` | `String` | Selected vehicle ID (e.g., `"ather_450x"`), forwarded to NavigationFragment when user taps Directions. |
+| `pendingBatteryPercent` | `Float` | Selected battery %, forwarded to NavigationFragment for energy feasibility display. |
+
+### Why Pending Fields Exist
+
+The savedStateHandle observer fires when the view is created — but `onMapReady()` (where MarkerManager is created) runs **later**. Without pending fields:
+1. `range_filter_km = 4.5` arrives → but `markerManager` is null → lost!
+2. `onMapReady()` creates MarkerManager → no filter set → all 336 markers shown
+
+With pending fields:
+1. `range_filter_km = 4.5` arrives → stored in `pendingRangeFilterKm`
+2. `onMapReady()` → creates MarkerManager → applies `pendingRangeFilterKm` → 192 visible, 144 filtered
+
+---
+
 ## Key Responsibilities
 
-### 1. Map Initialization
-- Creates a MapLibre (FOSS flavor) or Google Maps instance
-- Sets initial position to India (for first launch)
-- Configures map styles, compass, zoom controls
+### 1. Map Initialization (`onMapReady`)
+- Creates MapLibre map instance
+- **Calls `markerManager?.clearAll()`** to remove stale markers from previous instance
+- Creates new `MarkerManager` with pending range filter and user location
+- Applies pending filter values BEFORE setting chargepoints
 
 ### 2. Marker Management
 - Creates a `MarkerManager` (from `MarkerUtils.kt`)
@@ -60,31 +86,44 @@
 - Handles marker click → shows bottom sheet with station details
 - Passes `rangeFilterKm` and `userLocation` for range filtering
 
-### 3. Location Tracking
+### 3. Vehicle Data Persistence & Forwarding
+```kotlin
+// Observe vehicle data from VehicleInputFragment
+findNavController().currentBackStackEntry?.savedStateHandle
+    ?.getLiveData<String>("vehicle_id")
+    ?.observe(viewLifecycleOwner) { vehicleId ->
+        pendingVehicleId = vehicleId
+    }
+
+findNavController().currentBackStackEntry?.savedStateHandle
+    ?.getLiveData<Float>("battery_percent")
+    ?.observe(viewLifecycleOwner) { batteryPct ->
+        pendingBatteryPercent = batteryPct
+    }
+
+// Forward to NavigationFragment when directions FAB tapped
+findNavController().currentBackStackEntry?.savedStateHandle?.apply {
+    set("vehicle_id", pendingVehicleId)
+    set("battery_percent", pendingBatteryPercent)
+}
+```
+
+### 4. Location Tracking
 - Requests location permissions
 - Shows user's location on the map
-- Updates `userLocation` on MarkerManager for range calculations
+- **Always syncs** `markerManager.userLocation` regardless of filter state
 
-### 4. Search
-- Place autocomplete search bar at the top
-- Navigate to searched locations on the map
-
-### 5. Data Observation
-- Observes `MapViewModel.chargepoints` → updates markers
-- Observes `MapViewModel.chargerDetail` → updates bottom sheet
-- Observes `MapViewModel.favorites` → updates marker star icons
-- Observes `MapViewModel.filterStatus` → triggers reload
-
-### 6. Range Filter Integration
+### 5. Range Filter Integration
 ```kotlin
-// Listen for range filter result from VehicleInputFragment
 findNavController().currentBackStackEntry?.savedStateHandle
     ?.getLiveData<Float>("range_filter_km")
     ?.observe(viewLifecycleOwner) { rangeKm ->
-        if (rangeKm < 0) {
-            markerManager.rangeFilterKm = 0f  // Clear filter
-        } else {
+        pendingRangeFilterKm = rangeKm
+        pendingUserLocation = currentUserLocation
+        if (markerManager != null) {
             markerManager.rangeFilterKm = rangeKm
+            markerManager.userLocation = currentUserLocation
+            markerManager.chargepoints = vm.chargepoints.value  // Re-trigger filtering
         }
     }
 ```
@@ -99,22 +138,28 @@ MapFragment creates & configures MapViewModel
          ├── MapViewModel loads chargers from API
          │   └── chargepoints LiveData updates
          │       └── MapFragment observes → markerManager.chargepoints = data
-         │           └── Markers appear on map
+         │           └── Markers appear on map (filtered by range if active)
          │
          ├── User taps a marker
          │   └── markerManager.onChargerClick → MapViewModel loads details
          │       └── chargerDetail LiveData updates
          │           └── Bottom sheet shows station info
          │
-         ├── User taps "Navigate"
-         │   └── Opens NavigationFragment with (destLat, destLng)
+         ├── User taps "Navigate" (directions FAB)
+         │   └── Forwards pendingVehicleId + pendingBatteryPercent
+         │       via currentBackStackEntry.savedStateHandle
+         │       └── Opens NavigationFragment with (destLat, destLng)
+         │           └── NavigationFragment reads vehicle data from
+         │               previousBackStackEntry.savedStateHandle
          │
          ├── User taps "Vehicle" FAB
          │   └── Opens VehicleInputFragment
-         │       └── Returns range_filter_km → markerManager filters markers
+         │       └── Returns range_filter_km, vehicle_id, battery_percent
+         │           └── markerManager filters markers
          │
          └── User pans/zooms map
              └── MapViewModel.mapPosition updates → triggers API reload
+                 └── New chargepoints arrive → immediately filtered
 ```
 
 ---
@@ -126,11 +171,14 @@ MapFragment.kt (home screen)
     │
     ├──▶ MapViewModel.kt          — All business logic and data loading
     │
-    ├──▶ MarkerUtils.kt           — Creates and manages MarkerManager
+    ├──▶ MarkerUtils.kt           — Creates MarkerManager, calls clearAll()
+    │                                for lifecycle cleanup
     │
-    ├──▶ NavigationFragment.kt    — Opened when user taps "Navigate"
+    ├──▶ NavigationFragment.kt    — Opened on "Navigate", receives vehicle
+    │                                data via savedStateHandle
     │
-    ├──▶ VehicleInputFragment.kt  — Opened when user taps vehicle FAB
+    ├──▶ VehicleInputFragment.kt  — Returns range_filter_km, vehicle_id,
+    │                                battery_percent via savedStateHandle
     │
     ├──▶ FilterFragment.kt        — Opened when user taps filter button
     │
@@ -143,10 +191,12 @@ MapFragment.kt (home screen)
 
 ## Key Design Decisions
 
-1. **Bottom sheet for details**: Station details slide up from the bottom, keeping the map visible. Users don't lose context of where the station is.
+1. **Pending fields**: savedStateHandle fires before onMapReady, so pending fields bridge the gap. Without them, filter/vehicle data is lost during view recreation.
 
-2. **Lazy loading**: Chargers are loaded as the user pans the map, not all at once. This keeps memory usage low and API calls efficient.
+2. **clearAll() before new MarkerManager**: Ensures stale unfiltered markers from the old instance don't persist alongside the new filtered set.
 
-3. **Extended bounds**: The MapViewModel loads chargers 1.5x beyond the visible area, so markers don't pop in when the user starts scrolling.
+3. **Bottom sheet for details**: Station details slide up from the bottom, keeping the map visible. Users don't lose context of where the station is.
 
-4. **Single fragment for everything**: The map, search, filters, and bottom sheet are all in one fragment. This avoids fragment transaction overhead for frequent interactions.
+4. **Vehicle data forwarding**: MapFragment acts as a relay — it receives vehicle data from VehicleInputFragment and forwards it to NavigationFragment via savedStateHandle, since these fragments can't communicate directly.
+
+5. **Lazy loading**: Chargers are loaded as the user pans the map, not all at once. Each new batch is immediately filtered by the active range filter.

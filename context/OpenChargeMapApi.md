@@ -77,6 +77,8 @@ OpenChargeMapApiWrapper.getChargepoints()
     │
     ▼
 MapViewModel updates LiveData → MapFragment → MarkerManager
+    └── MarkerManager applies range filter (isInRange()) and
+        uses clearAll() to remove stale markers on view recreation
 ```
 
 ---

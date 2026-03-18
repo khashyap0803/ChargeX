@@ -1,6 +1,7 @@
 package net.vonforst.evmap.fragment
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -18,25 +19,39 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import net.vonforst.evmap.R
-import net.vonforst.evmap.databinding.FragmentNavigationBinding
-import net.vonforst.evmap.api.RouteService
+import com.mapbox.geojson.Feature
+import com.mapbox.geojson.FeatureCollection
+import com.mapbox.geojson.LineString
+import com.mapbox.geojson.Point
 import com.mapbox.mapboxsdk.Mapbox
-import com.mapbox.mapboxsdk.annotations.MarkerOptions
-import com.mapbox.mapboxsdk.annotations.PolylineOptions
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
 import com.mapbox.mapboxsdk.geometry.LatLng
 import com.mapbox.mapboxsdk.geometry.LatLngBounds
 import com.mapbox.mapboxsdk.maps.MapView
 import com.mapbox.mapboxsdk.maps.MapboxMap
 import com.mapbox.mapboxsdk.maps.Style
+import com.mapbox.mapboxsdk.style.layers.LineLayer
+import com.mapbox.mapboxsdk.style.layers.PropertyFactory
+import com.mapbox.mapboxsdk.style.layers.SymbolLayer
+import com.mapbox.mapboxsdk.style.sources.GeoJsonSource
+import com.mapbox.mapboxsdk.utils.BitmapUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import net.vonforst.evmap.R
+import net.vonforst.evmap.databinding.FragmentNavigationBinding
+import net.vonforst.evmap.api.RouteService
+import net.vonforst.evmap.model.RangeCalculator
+import net.vonforst.evmap.model.VehicleProfile
 
 class NavigationFragment : Fragment() {
     companion object {
         private const val TAG = "NavigationFrag"
+        private const val SOURCE_ROUTE = "route-source"
+        private const val SOURCE_MARKERS = "markers-source"
+        private const val LAYER_ROUTE = "route-layer"
+        private const val LAYER_MARKERS = "markers-layer"
+        private const val MARKER_ICON = "marker-icon"
     }
 
     private var _binding: FragmentNavigationBinding? = null
@@ -88,20 +103,39 @@ class NavigationFragment : Fragment() {
         val styleUrl = getMapStyleUrl()
         mapView?.getMapAsync { map ->
             mapLibreMap = map
-            map.setStyle(Style.Builder().fromUri(styleUrl)) { _ ->
-                // Add destination marker
-                val destLatLng = LatLng(args.destLat.toDouble(), args.destLng.toDouble())
-                map.addMarker(
-                    MarkerOptions()
-                        .position(destLatLng)
-                        .title(args.stationName)
+            map.setStyle(Style.Builder().fromUri(styleUrl)) { style ->
+                // Pre-load marker icon into the style
+                val markerBitmap = BitmapUtils.getBitmapFromDrawable(
+                    ContextCompat.getDrawable(requireContext(), R.drawable.ic_map_marker)
+                )
+                if (markerBitmap != null) {
+                    style.addImage(MARKER_ICON, markerBitmap)
+                }
+
+                // Add destination marker using GeoJSON source + SymbolLayer
+                val destPoint = Point.fromLngLat(args.destLng.toDouble(), args.destLat.toDouble())
+                val markerSource = GeoJsonSource(SOURCE_MARKERS,
+                    FeatureCollection.fromFeatures(listOf(
+                        Feature.fromGeometry(destPoint)
+                    ))
+                )
+                style.addSource(markerSource)
+                style.addLayer(
+                    SymbolLayer(LAYER_MARKERS, SOURCE_MARKERS)
+                        .withProperties(
+                            PropertyFactory.iconImage(MARKER_ICON),
+                            PropertyFactory.iconSize(1.0f),
+                            PropertyFactory.iconAnchor("bottom"),
+                            PropertyFactory.iconAllowOverlap(true)
+                        )
                 )
 
                 // Move camera to destination first
+                val destLatLng = LatLng(args.destLat.toDouble(), args.destLng.toDouble())
                 map.moveCamera(CameraUpdateFactory.newLatLngZoom(destLatLng, 13.0))
 
                 // Fetch route from user's location
-                fetchRoute()
+                fetchRoute(style)
             }
         }
     }
@@ -121,7 +155,7 @@ class NavigationFragment : Fragment() {
         }
     }
 
-    private fun fetchRoute() {
+    private fun fetchRoute(style: Style) {
         Log.d(TAG, "========== NavigationFragment.fetchRoute() ==========")
         Log.d(TAG, "Destination: ${args.stationName} (${args.destLat}, ${args.destLng})")
 
@@ -133,10 +167,8 @@ class NavigationFragment : Fragment() {
                     requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION
                 ) == PackageManager.PERMISSION_GRANTED
 
-        Log.d(TAG, "Location permission granted: $hasPermission")
-
         if (!hasPermission) {
-            Log.e(TAG, "❌ No location permission — cannot fetch route")
+            Log.e(TAG, "No location permission — cannot fetch route")
             showError("Location permission not granted. Enable location to see route.")
             binding.btnStartNavigation.isEnabled = true
             return
@@ -146,8 +178,6 @@ class NavigationFragment : Fragment() {
         val location = try {
             val gpsLoc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
             val netLoc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-            Log.d(TAG, "GPS location: ${gpsLoc?.let { "(${it.latitude}, ${it.longitude})" } ?: "null"}")
-            Log.d(TAG, "Network location: ${netLoc?.let { "(${it.latitude}, ${it.longitude})" } ?: "null"}")
             gpsLoc ?: netLoc
         } catch (e: SecurityException) {
             Log.e(TAG, "SecurityException getting location: ${e.message}")
@@ -155,7 +185,6 @@ class NavigationFragment : Fragment() {
         }
 
         if (location == null) {
-            Log.e(TAG, "❌ Location is null — GPS and Network both failed")
             showError("Could not get your location. Please ensure GPS is enabled.")
             binding.btnStartNavigation.isEnabled = true
             return
@@ -163,30 +192,17 @@ class NavigationFragment : Fragment() {
 
         val originLat = location.latitude
         val originLng = location.longitude
-        Log.d(TAG, "Using origin: ($originLat, $originLng) from ${location.provider} provider")
+        Log.d(TAG, "Using origin: ($originLat, $originLng)")
 
         viewLifecycleOwner.lifecycleScope.launch {
-            // Get Google Maps API key for best routing in India
             val googleApiKey = try {
                 val keyResId = requireContext().resources.getIdentifier(
                     "google_directions_key", "string", requireContext().packageName
                 )
-                Log.d(TAG, "google_directions_key resource ID: $keyResId")
-                if (keyResId != 0) {
-                    val key = requireContext().getString(keyResId)
-                    Log.d(TAG, "Google API key found (length=${key.length}): ${key.take(10)}...")
-                    key
-                } else {
-                    Log.w(TAG, "⚠️ google_directions_key resource not found — will use OSRM only")
-                    null
-                }
+                if (keyResId != 0) requireContext().getString(keyResId) else null
             } catch (e: Exception) {
-                Log.e(TAG, "Exception loading Google API key: ${e.message}")
                 null
             }
-
-            Log.d(TAG, "Calling RouteService.getRoute()...")
-            val startTime = System.currentTimeMillis()
 
             val route = withContext(Dispatchers.IO) {
                 RouteService.getRoute(
@@ -196,66 +212,133 @@ class NavigationFragment : Fragment() {
                 )
             }
 
-            val elapsed = System.currentTimeMillis() - startTime
-            Log.d(TAG, "RouteService returned in ${elapsed}ms")
-
-            if (_binding == null) {
-                Log.w(TAG, "Binding is null after route fetch — fragment was destroyed")
-                return@launch
-            }
+            if (_binding == null) return@launch
 
             if (route != null) {
-                Log.d(TAG, "✅ Route received: %.2f km, %.1f min, ${route.points.size} points".format(route.distanceKm, route.durationMinutes))
+                Log.d(TAG, "Route received: %.2f km, %.1f min, ${route.points.size} points".format(route.distanceKm, route.durationMinutes))
                 binding.progressRoute.visibility = View.GONE
                 binding.routeDetails.visibility = View.VISIBLE
                 binding.btnStartNavigation.isEnabled = true
 
                 binding.tvDistance.text = formatDistance(route.distanceKm)
                 binding.tvDuration.text = formatDuration(route.durationMinutes)
-                Log.d(TAG, "Displayed: distance=${formatDistance(route.distanceKm)}, duration=${formatDuration(route.durationMinutes)}")
 
+                // Draw route using GeoJSON source + LineLayer
+                val linePoints = route.points.map { (lat, lng) ->
+                    Point.fromLngLat(lng, lat)
+                }
+
+                if (linePoints.size >= 2) {
+                    val routeSource = GeoJsonSource(SOURCE_ROUTE,
+                        FeatureCollection.fromFeatures(listOf(
+                            Feature.fromGeometry(LineString.fromLngLats(linePoints))
+                        ))
+                    )
+                    style.addSource(routeSource)
+                    style.addLayerBelow(
+                        LineLayer(LAYER_ROUTE, SOURCE_ROUTE)
+                            .withProperties(
+                                PropertyFactory.lineColor(Color.parseColor("#4CAF50")),
+                                PropertyFactory.lineWidth(5f),
+                                PropertyFactory.lineOpacity(0.85f)
+                            ),
+                        LAYER_MARKERS // route below markers
+                    )
+                }
+
+                // Update the existing markers source to include origin marker
+                val destPoint = Point.fromLngLat(args.destLng.toDouble(), args.destLat.toDouble())
+                val originPoint = Point.fromLngLat(originLng, originLat)
+                val existingSource = style.getSourceAs<GeoJsonSource>(SOURCE_MARKERS)
+                existingSource?.setGeoJson(
+                    FeatureCollection.fromFeatures(listOf(
+                        Feature.fromGeometry(destPoint),
+                        Feature.fromGeometry(originPoint)
+                    ))
+                )
+
+                // Fit camera to route
                 mapLibreMap?.let { map ->
-                    val polylinePoints = route.points.map { (lat, lng) ->
-                        LatLng(lat, lng)
-                    }
-                    Log.d(TAG, "Drawing polyline with ${polylinePoints.size} points on map")
-
-                    map.addPolyline(
-                        PolylineOptions()
-                            .addAll(polylinePoints)
-                            .color(Color.parseColor("#4CAF50"))
-                            .width(5f)
-                    )
-
-                    map.addMarker(
-                        MarkerOptions()
-                            .position(LatLng(originLat, originLng))
-                            .title("Your Location")
-                    )
-
                     val boundsBuilder = LatLngBounds.Builder()
-                    polylinePoints.forEach { boundsBuilder.include(it) }
+                    route.points.forEach { (lat, lng) ->
+                        boundsBuilder.include(LatLng(lat, lng))
+                    }
                     boundsBuilder.include(LatLng(originLat, originLng))
 
                     try {
                         map.animateCamera(
-                            CameraUpdateFactory.newLatLngBounds(
-                                boundsBuilder.build(),
-                                100
-                            )
+                            CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 100)
                         )
-                        Log.d(TAG, "Camera animated to fit route bounds")
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to animate camera: ${e.message}")
                     }
                 }
+
+                // === Energy-Aware Route Feasibility ===
+                displayEnergyFeasibility(route.distanceKm, route.durationMinutes)
             } else {
-                Log.e(TAG, "❌ Route is NULL — both Google and OSRM failed")
                 showError("Could not calculate route. Check your internet connection.")
                 binding.btnStartNavigation.isEnabled = true
             }
-            Log.d(TAG, "====================================================")
         }
+    }
+
+    /**
+     * Calculates and displays energy feasibility using the physics-based model.
+     * Reads vehicle profile and battery level from SavedStateHandle (set by VehicleInputFragment).
+     */
+    private fun displayEnergyFeasibility(distanceKm: Double, durationMinutes: Double) {
+        // Try to read vehicle info from previous screen's savedStateHandle
+        val savedState = findNavController().previousBackStackEntry?.savedStateHandle
+        val vehicleId = savedState?.get<String>("vehicle_id")
+        val batteryPercent = savedState?.get<Float>("battery_percent")?.toDouble()
+
+        Log.d(TAG, "Energy feasibility: raw savedState vehicleId=$vehicleId, battery=$batteryPercent")
+
+        val vehicle = if (!vehicleId.isNullOrBlank()) {
+            VehicleProfile.findById(vehicleId)
+        } else null
+
+        if (vehicle == null || batteryPercent == null || batteryPercent <= 0) {
+            // No vehicle info available — hide energy card
+            Log.d(TAG, "Energy feasibility: no vehicle data (vehicleId=$vehicleId, battery=$batteryPercent)")
+            binding.cardEnergyFeasibility.visibility = View.GONE
+            return
+        }
+
+        // Use vehicle's hasAC property: scooters don't have AC
+        val acOn = vehicle.hasAC
+        Log.d(TAG, "Energy feasibility: vehicle=${vehicle.manufacturer} ${vehicle.name}, battery=$batteryPercent%, distance=$distanceKm km, duration=$durationMinutes min, acOn=$acOn")
+
+        // safetyMargin = 0.0 because calculateRange already applies real-world corrections
+        // (1.15x ARAI, temperature, AC, driving mode). A 10% reserve on total battery
+        // makes small batteries (e.g. 3.7 kWh scooter at 5%) show negative available energy.
+        val result = RangeCalculator.isRouteFeasible(
+            vehicle = vehicle,
+            batteryPercent = batteryPercent,
+            routeDistanceKm = distanceKm,
+            routeDurationMinutes = durationMinutes,
+            temperatureC = 35.0,
+            acOn = acOn,
+            safetyMargin = 0.0
+        )
+
+        binding.cardEnergyFeasibility.visibility = View.VISIBLE
+        binding.tvVehicleInfo.text = "${vehicle.manufacturer} ${vehicle.name} • ${batteryPercent.toInt()}% battery"
+        binding.tvEnergyStatus.text = result.statusMessage
+        binding.tvArrivalBattery.text = "Arrival Battery: ${result.arrivalBatteryPercent.toInt()}%"
+        binding.tvEnergyRequired.text = "Energy Required: %.3f kWh".format(result.energyRequired)
+        binding.tvEnergyAvailable.text = "Energy Available: %.3f kWh".format(result.energyAvailable)
+        binding.tvTrafficCondition.text = result.trafficFactor
+
+        // Color code based on feasibility
+        val statusColor = when {
+            !result.isFeasible -> Color.parseColor("#C62828") // Red
+            result.arrivalBatteryPercent > 30 -> Color.parseColor("#2E7D32") // Green
+            result.arrivalBatteryPercent > 15 -> Color.parseColor("#F57F17") // Amber
+            else -> Color.parseColor("#E65100") // Orange
+        }
+        binding.tvEnergyStatus.setTextColor(statusColor)
     }
 
     private fun showError(message: String) {
@@ -283,20 +366,26 @@ class NavigationFragment : Fragment() {
         }
     }
 
+    /**
+     * Launch Google Maps navigation. Uses try/catch instead of deprecated resolveActivity().
+     */
     private fun launchGoogleMapsNavigation() {
-        val intent = Intent(Intent.ACTION_VIEW).apply {
+        val gMapsIntent = Intent(Intent.ACTION_VIEW).apply {
             data = Uri.parse("google.navigation:q=${args.destLat},${args.destLng}")
             `package` = "com.google.android.apps.maps"
         }
-        if (intent.resolveActivity(requireContext().packageManager) != null) {
-            startActivity(intent)
-        } else {
+        try {
+            startActivity(gMapsIntent)
+        } catch (e: ActivityNotFoundException) {
+            // Google Maps not installed — try generic geo intent
             val geoIntent = Intent(Intent.ACTION_VIEW).apply {
-                data = Uri.parse("geo:${args.destLat},${args.destLng}?q=${args.destLat},${args.destLng}(${Uri.encode(args.stationName)})")
+                data = Uri.parse(
+                    "geo:${args.destLat},${args.destLng}?q=${args.destLat},${args.destLng}(${Uri.encode(args.stationName)})"
+                )
             }
             try {
                 startActivity(geoIntent)
-            } catch (e: Exception) {
+            } catch (e2: ActivityNotFoundException) {
                 Snackbar.make(
                     binding.root,
                     "No maps app found. Please install Google Maps.",

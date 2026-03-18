@@ -101,7 +101,9 @@ initAcra {
 ```
 EvMapApplication.kt
     │
-    ├──▶ PreferenceDataSource.kt     — Reads dark mode and language preferences
+    ├──▶ PreferenceDataSource.kt     — Reads dark mode, language, and other
+    │                                  user preferences used across the app
+    │                                  (also used by MapFragment, MapViewModel)
     │
     ├──▶ CleanupCacheWorker.kt       — Scheduled background worker for cache
     │

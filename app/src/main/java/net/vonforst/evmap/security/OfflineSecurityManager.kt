@@ -36,88 +36,11 @@ object OfflineSecurityManager {
     private const val CURVE_NAME = "secp256r1" // NIST P-256
     private const val SIGNATURE_DELIMITER = "|sig:"
 
-    // ═══════════════════════════════════════════════════════════════
-    // KEY GENERATION (For demo/testing — in production, use a secure server)
-    // ═══════════════════════════════════════════════════════════════
-
-    /**
-     * Generates an ECDSA key pair on the secp256r1 curve.
-     *
-     * In production:
-     * - Private key stays on the server (never leaves)
-     * - Public key is embedded in the app and station devices
-     *
-     * For demo purposes, both keys are generated on-device.
-     *
-     * @return KeyPair containing EC public and private keys
-     */
-    fun generateKeyPair(): KeyPair {
-        val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM)
-        keyPairGenerator.initialize(ECGenParameterSpec(CURVE_NAME), SecureRandom())
-        return keyPairGenerator.generateKeyPair()
-    }
-
     /**
      * Encodes a public key to Base64 string for storage/embedding.
      */
     fun encodePublicKey(publicKey: PublicKey): String {
         return Base64.encodeToString(publicKey.encoded, Base64.NO_WRAP)
-    }
-
-    /**
-     * Encodes a private key to Base64 string (for demo storage only).
-     */
-    fun encodePrivateKey(privateKey: PrivateKey): String {
-        return Base64.encodeToString(privateKey.encoded, Base64.NO_WRAP)
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // SIGNING (Server-side / Demo mode)
-    // ═══════════════════════════════════════════════════════════════
-
-    /**
-     * Signs an OfflineTicket using the private key.
-     *
-     * Process:
-     * 1. Serialize ticket to raw string: "bookingId|stationId|expiry|userId"
-     * 2. Hash with SHA-256 to create a message digest
-     * 3. Sign the digest using ECDSA with the private key
-     * 4. Encode signature as Base64
-     *
-     * @param ticket The booking ticket to sign
-     * @param privateKey The ECDSA private key
-     * @return Complete QR payload: "rawData|sig:base64Signature"
-     */
-    fun signTicket(ticket: OfflineTicket, privateKey: PrivateKey): String {
-        val rawData = ticket.toRawString()
-        val signature = Signature.getInstance(SIGNATURE_ALGORITHM)
-        signature.initSign(privateKey)
-        signature.update(rawData.toByteArray(Charsets.UTF_8))
-        val signatureBytes = signature.sign()
-        val signatureBase64 = Base64.encodeToString(signatureBytes, Base64.NO_WRAP)
-        return "$rawData$SIGNATURE_DELIMITER$signatureBase64"
-    }
-
-    /**
-     * Generates a complete test QR payload for demo purposes.
-     *
-     * @param bookingId Unique booking ID
-     * @param stationId Target station ID
-     * @param userId User identifier
-     * @param validityMinutes How long the ticket remains valid (default: 60 mins)
-     * @param privateKey The signing key
-     * @return QR-ready string: "BK001|HYD01|1710580000|USR01|sig:MEUCIQDh..."
-     */
-    fun generateDemoTicket(
-        bookingId: String,
-        stationId: String,
-        userId: String,
-        validityMinutes: Int = 60,
-        privateKey: PrivateKey
-    ): String {
-        val expiry = (System.currentTimeMillis() / 1000) + (validityMinutes * 60)
-        val ticket = OfflineTicket(bookingId, stationId, expiry, userId)
-        return signTicket(ticket, privateKey)
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -156,7 +79,7 @@ object OfflineSecurityManager {
             }
 
             // Step 2: Reconstruct public key from Base64
-            val publicKeyBytes = Base64.decode(publicKeyBase64, Base64.DEFAULT)
+            val publicKeyBytes = Base64.decode(publicKeyBase64, Base64.NO_WRAP)
             val keySpec = X509EncodedKeySpec(publicKeyBytes)
             val keyFactory = KeyFactory.getInstance(ALGORITHM)
             val publicKey = keyFactory.generatePublic(keySpec)
@@ -166,7 +89,7 @@ object OfflineSecurityManager {
             signature.initVerify(publicKey)
             signature.update(rawData.toByteArray(Charsets.UTF_8))
 
-            val signatureBytes = Base64.decode(signatureBase64, Base64.DEFAULT)
+            val signatureBytes = Base64.decode(signatureBase64, Base64.NO_WRAP)
             val isAuthentic = signature.verify(signatureBytes)
 
             if (!isAuthentic) {

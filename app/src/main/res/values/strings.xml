@@ -392,4 +392,5 @@
     <string name="chargeprice_removal_2025_dialog_detail">Costs for Chargeprice data access have risen sharply and can’t be covered by donations, so EVMap can no longer show this data directly. For now, this opens the Chargeprice website. An alternative solution is being developed, but it’ll take time and may start with limited features. Thanks for your patience and support!</string>
     <string name="auto_use_new_map_screen">New map screen (beta)</string>
     <string name="auto_confirm_delete_profile">Delete filter profile “%s“?</string>
+    <string name="emergency_no_chargers">No charging stations are available within %.0f km of your current location.\n\nPlease try charging at a local shop/store or contact emergency services at 100.</string>
 </resources>

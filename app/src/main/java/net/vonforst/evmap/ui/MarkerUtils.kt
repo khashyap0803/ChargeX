@@ -69,6 +69,7 @@ class MarkerManager(
     var filteredConnectors: Set<String>? = null
     var onChargerClick: ((ChargeLocation) -> Unit)? = null
     var onClusterClick: ((ChargeLocationCluster) -> Unit)? = null
+    var onFilterResult: ((Int) -> Unit)? = null
 
     var chargepoints: List<ChargepointListItem> = emptyList()
         @Synchronized set(value) {
@@ -144,6 +145,7 @@ class MarkerManager(
 
     /** Remove ALL markers managed by this instance from the map */
     fun clearAll() {
+        animator.cancelAll()
         markers.keys.toList().forEach { marker ->
             animator.deleteMarker(marker)
         }
@@ -174,16 +176,17 @@ class MarkerManager(
         }
     }
 
-    /** Check if a charger is within the configured range filter */
-    private fun isInRange(charger: ChargeLocation): Boolean {
+    /** Check if a location is within the configured range filter */
+    private fun isInRange(lat: Double, lng: Double): Boolean {
         if (rangeFilterKm <= 0 || userLocation == null) return true
         val dist = distanceBetween(
             userLocation!!.latitude, userLocation!!.longitude,
-            charger.coordinates.lat, charger.coordinates.lng
+            lat, lng
         ) / 1000.0 // meters to km
-        val inRange = dist <= rangeFilterKm
+        val detourFactor = 1.3 // Accounts for driving routes vs straight-line
+        val inRange = (dist * detourFactor) <= rangeFilterKm
         if (!inRange) {
-            android.util.Log.v("MarkerManager", "FILTERED OUT: ${charger.name} at %.1f km (max: %.1f km)".format(dist, rangeFilterKm.toDouble()))
+            android.util.Log.v("MarkerManager", "FILTERED OUT: at %.1f km (max: %.1f km)".format((dist * detourFactor), rangeFilterKm.toDouble()))
         }
         return inRange
     }
@@ -192,10 +195,15 @@ class MarkerManager(
         val clusters = chargepoints.filterIsInstance<ChargeLocationCluster>()
         val chargers = chargepoints.filterIsInstance<ChargeLocation>()
 
-        // Filter to only in-range chargers when range filter is active
-        val visibleChargers = chargers.filter { isInRange(it) }
+        // Filter to only in-range chargers and clusters when range filter is active
+        val visibleChargers = chargers.filter { isInRange(it.coordinates.lat, it.coordinates.lng) }
+        val visibleClusters = clusters.filter { isInRange(it.coordinates.lat, it.coordinates.lng) }
         val visibleIds = visibleChargers.map { it.id }.toSet()
-        android.util.Log.d("MarkerManager", "updateChargepoints: total=${chargers.size}, visible=${visibleChargers.size}, filtered=${chargers.size - visibleChargers.size}, rangeKm=$rangeFilterKm, userLoc=$userLocation")
+        android.util.Log.d("MarkerManager", "updateChargepoints: chargers=${chargers.size}, clusters=${clusters.size}, visChargers=${visibleChargers.size}, visClusters=${visibleClusters.size}, rangeKm=$rangeFilterKm, userLoc=$userLocation")
+
+        if (rangeFilterKm > 0 && userLocation != null) {
+            onFilterResult?.invoke(visibleChargers.size + visibleClusters.size)
+        }
 
         // update icons of existing markers (connector filter may have changed)
         updateChargerIcons()
@@ -229,17 +237,17 @@ class MarkerManager(
             }
         }
 
-        if (clusters.toSet() != clusterMarkers.values) {
+        if (visibleClusters.toSet() != clusterMarkers.values) {
             // remove clusters that disappeared
             clusterMarkers.entries.toList().forEach { (marker, cluster) ->
-                if (!clusters.contains(cluster)) {
+                if (!visibleClusters.contains(cluster)) {
                     marker.remove()
                     clusterMarkers.remove(marker)
                 }
             }
 
             // add new clusters
-            clusters.forEach { cluster ->
+            visibleClusters.forEach { cluster ->
                 if (!clusterMarkers.inverse.contains(cluster)) {
                     val marker = map.addMarker(
                         MarkerOptions()
@@ -307,6 +315,14 @@ class MarkerManager(
 
 class MarkerAnimator(val gen: ChargerIconGenerator) {
     private val animatingMarkers = hashMapOf<Marker, ValueAnimator>()
+
+    fun cancelAll() {
+        animatingMarkers.entries.toList().forEach { (marker, anim) ->
+            anim.cancel()
+            marker.remove()
+        }
+        animatingMarkers.clear()
+    }
 
     fun animateMarkerAppear(
         marker: Marker,

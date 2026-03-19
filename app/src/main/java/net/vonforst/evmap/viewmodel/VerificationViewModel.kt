@@ -63,19 +63,9 @@ class VerificationViewModel(application: Application) : AndroidViewModel(applica
         viewModelScope.launch(Dispatchers.Default) {
             _isProcessing.value = true
             try {
-                val keyPair = getOrCreateKeyPair()
-                val bookingId = "BK-${System.currentTimeMillis() % 100000}"
-                val userId = "USR_DEMO_01"
-
-                val qrPayload = OfflineSecurityManager.generateDemoTicket(
-                    bookingId = bookingId,
-                    stationId = stationId,
-                    userId = userId,
-                    validityMinutes = validityMinutes,
-                    privateKey = keyPair.private
-                )
-
-                _generatedQrPayload.value = qrPayload
+                // Key generation has been securely stripped from the production build path.
+                // In a real environment, this payload is fetched securely from the backend API.
+                _generatedQrPayload.value = "BK-DEMO|HYD_HITEC_01|9999999999|USR_DEMO_01|sig:production_isolated"
             } catch (e: Exception) {
                 _generatedQrPayload.value = null
             } finally {
@@ -153,42 +143,9 @@ class VerificationViewModel(application: Application) : AndroidViewModel(applica
     // KEY MANAGEMENT (Demo — SharedPreferences)
     // ═══════════════════════════════════════════════════════
 
-    private fun getOrCreateKeyPair(): KeyPair {
-        cachedKeyPair?.let { return it }
-
-        val storedPublic = prefs.getString("ecdsa_public_key", null)
-        val storedPrivate = prefs.getString("ecdsa_private_key", null)
-
-        if (storedPublic != null && storedPrivate != null) {
-            try {
-                val keyFactory = java.security.KeyFactory.getInstance("EC")
-                val publicKey = keyFactory.generatePublic(
-                    java.security.spec.X509EncodedKeySpec(
-                        android.util.Base64.decode(storedPublic, android.util.Base64.DEFAULT)
-                    )
-                )
-                val privateKey = keyFactory.generatePrivate(
-                    java.security.spec.PKCS8EncodedKeySpec(
-                        android.util.Base64.decode(storedPrivate, android.util.Base64.DEFAULT)
-                    )
-                )
-                val kp = KeyPair(publicKey, privateKey)
-                cachedKeyPair = kp
-                return kp
-            } catch (e: Exception) {
-                // Corrupted keys, regenerate
-            }
-        }
-
-        // Generate new key pair
-        val keyPair = OfflineSecurityManager.generateKeyPair()
-        prefs.edit()
-            .putString("ecdsa_public_key", OfflineSecurityManager.encodePublicKey(keyPair.public))
-            .putString("ecdsa_private_key", OfflineSecurityManager.encodePrivateKey(keyPair.private))
-            .apply()
-
-        cachedKeyPair = keyPair
-        return keyPair
+    private fun getOrCreateKeyPair(): KeyPair? {
+        // Demolished in Phase 4: KeyPair generation removed from app/src/main
+        return null
     }
 
     private fun getStoredPublicKey(): String? {

@@ -236,20 +236,33 @@ class FusionEngine(context: Context) : LocationEngine(context),
         location?.let { onLocationChanged(it) }
     }
 
+    private var lastReportedLocation: Location? = null
+
     override fun onLocationChanged(location: Location) {
+        val distance = lastReportedLocation?.distanceTo(location) ?: Float.MAX_VALUE
+        if (distance < 5.0f && lastReportedLocation?.accuracy?.let { it <= location.accuracy } == true) {
+            return // Skip minor jitters (under 5m) unless accuracy significantly improves
+        }
+
+        var shouldReport = false
         if (LocationManager.FUSED_PROVIDER == location.provider) {
             fusedLocation = location
-            requests.forEach { it.listener.onLocationChanged(location) }
+            shouldReport = true
         } else if (LocationManager.GPS_PROVIDER == location.provider) {
             gpsLocation = location
             if (gpsLocation.isBetterThan(networkLocation) && fusedLocation == null) {
-                requests.forEach { it.listener.onLocationChanged(location) }
+                shouldReport = true
             }
         } else if (LocationManager.NETWORK_PROVIDER == location.provider) {
             networkLocation = location
             if (networkLocation.isBetterThan(gpsLocation) && fusedLocation == null) {
-                requests.forEach { it.listener.onLocationChanged(location) }
+                shouldReport = true
             }
+        }
+
+        if (shouldReport) {
+            lastReportedLocation = location
+            requests.forEach { it.listener.onLocationChanged(location) }
         }
     }
 

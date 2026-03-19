@@ -21,7 +21,8 @@ interface GoogleDirectionsApi {
         @Query("key") apiKey: String,
         @Query("mode") mode: String = "driving",
         @Query("alternatives") alternatives: Boolean = false,
-        @Query("region") region: String = "in"
+        @Query("region") region: String = "in",
+        @Query("departure_time") departureTime: String = "now"
     ): GoogleDirectionsResponse
 }
 
@@ -40,7 +41,8 @@ data class GoogleRoute(
 @JsonClass(generateAdapter = true)
 data class GoogleLeg(
     val distance: GoogleTextValue,
-    val duration: GoogleTextValue
+    val duration: GoogleTextValue,
+    @Json(name = "duration_in_traffic") val durationInTraffic: GoogleTextValue? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -84,10 +86,12 @@ interface OsrmApi {
 data class DecodedRoute(
     val points: List<Pair<Double, Double>>,  // (lat, lng) pairs
     val distanceMeters: Double,
-    val durationSeconds: Double
+    val durationSeconds: Double,
+    val durationInTrafficSeconds: Double? = null
 ) {
     val distanceKm: Double get() = distanceMeters / 1000.0
     val durationMinutes: Double get() = durationSeconds / 60.0
+    val durationInTrafficMinutes: Double? get() = durationInTrafficSeconds?.let { it / 60.0 }
 }
 
 object RouteService {
@@ -196,7 +200,8 @@ object RouteService {
                 DecodedRoute(
                     points,
                     leg.distance.value.toDouble(),
-                    leg.duration.value.toDouble()
+                    leg.duration.value.toDouble(),
+                    leg.durationInTraffic?.value?.toDouble()
                 )
             } else {
                 Log.w(TAG, "[Google] Bad response — status: ${response.status}, routes: ${response.routes.size}")
@@ -272,31 +277,37 @@ object RouteService {
         var lat = 0
         var lng = 0
 
-        while (index < len) {
-            var b: Int
-            var shift = 0
-            var result = 0
-            do {
-                b = encoded[index++].code - 63
-                result = result or ((b and 0x1f) shl shift)
-                shift += 5
-            } while (b >= 0x20)
-            val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
-            lat += dlat
+        try {
+            while (index < len) {
+                var b: Int
+                var shift = 0
+                var result = 0
+                do {
+                    if (index >= len) break
+                    b = encoded[index++].code - 63
+                    result = result or ((b and 0x1f) shl shift)
+                    shift += 5
+                } while (b >= 0x20)
+                val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+                lat += dlat
 
-            shift = 0
-            result = 0
-            do {
-                b = encoded[index++].code - 63
-                result = result or ((b and 0x1f) shl shift)
-                shift += 5
-            } while (b >= 0x20)
-            val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
-            lng += dlng
+                shift = 0
+                result = 0
+                do {
+                    if (index >= len) break
+                    b = encoded[index++].code - 63
+                    result = result or ((b and 0x1f) shl shift)
+                    shift += 5
+                } while (b >= 0x20)
+                val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+                lng += dlng
 
-            poly.add(Pair(lat / precision, lng / precision))
+                poly.add(Pair(lat / precision, lng / precision))
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("RouteService", "Error decoding polyline: ${e.message}")
         }
-        Log.v(TAG, "Decoded polyline (precision=$precision): ${poly.size} points from ${encoded.length} chars")
+        android.util.Log.v("RouteService", "Decoded polyline (precision=$precision): ${poly.size} points from ${encoded.length} chars")
         return poly
     }
 }

@@ -332,7 +332,7 @@ data class VehicleProfile(
                 vehicleType = VehicleType.SCOOTER,
                 curbWeightKg = 125.0,
                 frontalAreaM2 = 0.5,
-                dragCoefficient = 0.60
+                dragCoefficient = 0.90
             ),
 
             // Ather
@@ -346,7 +346,7 @@ data class VehicleProfile(
                 vehicleType = VehicleType.SCOOTER,
                 curbWeightKg = 108.0,
                 frontalAreaM2 = 0.5,
-                dragCoefficient = 0.60
+                dragCoefficient = 0.85
             )
         )
 

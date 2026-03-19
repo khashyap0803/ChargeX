@@ -210,6 +210,7 @@ public abstract class Filter {
      * {@link android.widget.Filter#filter(CharSequence, android.widget.Filter.FilterListener)},
      * it is sent to this handler.</p>
      */
+    @android.annotation.SuppressLint("HandlerLeak")
     private class RequestHandler extends Handler {
         public RequestHandler(Looper looper) {
             super(looper);
@@ -262,6 +263,7 @@ public abstract class Filter {
      * <p>Handles the results of a filtering operation. The results are
      * handled in the UI thread.</p>
      */
+    @android.annotation.SuppressLint("HandlerLeak")
     private class ResultsHandler extends Handler {
         /**
          * <p>Messages received from the request handler are processed in the

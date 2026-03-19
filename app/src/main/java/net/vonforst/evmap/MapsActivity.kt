@@ -246,7 +246,9 @@ class MapsActivity : AppCompatActivity(),
         if (pkg == null) {
             // There is no default maps app or EVMap itself is the current default, fall back to app chooser
             val chooserIntent = Intent.createChooser(intent, null).apply {
-                putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(componentName))
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(componentName))
+                }
             }
             startActivity(chooserIntent)
             return
@@ -292,7 +294,9 @@ class MapsActivity : AppCompatActivity(),
             if (pkg == null) {
                 // There is no default browser, fall back to app chooser
                 val chooserIntent = Intent.createChooser(viewIntent, null).apply {
-                    putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(componentName))
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(componentName))
+                    }
                 }
                 val targets: List<ResolveInfo> = packageManager.queryIntentActivities(
                     viewIntent,

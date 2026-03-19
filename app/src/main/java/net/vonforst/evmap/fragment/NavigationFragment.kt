@@ -41,6 +41,7 @@ import kotlinx.coroutines.withContext
 import net.vonforst.evmap.R
 import net.vonforst.evmap.databinding.FragmentNavigationBinding
 import net.vonforst.evmap.api.RouteService
+import net.vonforst.evmap.api.DecodedRoute
 import net.vonforst.evmap.model.RangeCalculator
 import net.vonforst.evmap.model.VehicleProfile
 
@@ -275,7 +276,7 @@ class NavigationFragment : Fragment() {
                 }
 
                 // === Energy-Aware Route Feasibility ===
-                displayEnergyFeasibility(route.distanceKm, route.durationMinutes)
+                displayEnergyFeasibility(route)
             } else {
                 showError("Could not calculate route. Check your internet connection.")
                 binding.btnStartNavigation.isEnabled = true
@@ -287,7 +288,12 @@ class NavigationFragment : Fragment() {
      * Calculates and displays energy feasibility using the physics-based model.
      * Reads vehicle profile and battery level from SavedStateHandle (set by VehicleInputFragment).
      */
-    private fun displayEnergyFeasibility(distanceKm: Double, durationMinutes: Double) {
+    private fun displayEnergyFeasibility(route: DecodedRoute) {
+        val distanceKm = route.distanceKm
+        val durationMinutes = route.durationMinutes
+        val trafficMultiplier = if (route.durationInTrafficMinutes != null && route.durationMinutes > 0) {
+            maxOf(1.0, route.durationInTrafficMinutes!! / route.durationMinutes)
+        } else 1.0
         // Try to read vehicle info from previous screen's savedStateHandle
         val savedState = findNavController().previousBackStackEntry?.savedStateHandle
         val vehicleId = savedState?.get<String>("vehicle_id")
@@ -320,7 +326,8 @@ class NavigationFragment : Fragment() {
             routeDurationMinutes = durationMinutes,
             temperatureC = 35.0,
             acOn = acOn,
-            safetyMargin = 0.0
+            safetyMargin = 0.0,
+            trafficMultiplier = trafficMultiplier
         )
 
         binding.cardEnergyFeasibility.visibility = View.VISIBLE

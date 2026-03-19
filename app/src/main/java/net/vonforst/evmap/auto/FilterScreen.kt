@@ -111,6 +111,7 @@ class FilterScreen(ctx: CarContext, val session: EVMapSession) : Screen(ctx) {
                                 db.filterValueDao()
                                     .copyFiltersToCustom(filterStatus, prefs.dataSource)
                                 screenManager.push(EditFiltersScreen(carContext))
+                                screenManager.remove(this@FilterScreen)
                             }
                         })
                     }.build())

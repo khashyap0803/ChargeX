@@ -141,7 +141,10 @@ object RangeCalculator {
         efficiencyPerKm *= temperatureCorrectionFactor(temperatureC)
         // Only apply AC penalty for vehicles with AC (not scooters)
         if (acOn && vehicle.hasAC) efficiencyPerKm *= 1.10
-        efficiencyPerKm *= 1.15  // ARAI/WLTP real-world correction
+        // Only apply ARAI penalty for non-scooters (scooter efficiency already real-world)
+        if (vehicle.vehicleType != VehicleType.SCOOTER) {
+            efficiencyPerKm *= 1.15  // ARAI/WLTP real-world correction
+        }
 
         return if (efficiencyPerKm > 0) {
             availableEnergy / efficiencyPerKm
@@ -176,12 +179,13 @@ object RangeCalculator {
         avgSpeedKmh: Double,
         temperatureC: Double = 35.0,
         acOn: Boolean = true,
-        gradientPercent: Double = 0.0
+        gradientPercent: Double = 0.0,
+        trafficMultiplier: Double = 1.0
     ): EnergyConsumptionResult {
         val distanceM = distanceKm * 1000.0
         val avgSpeedMs = avgSpeedKmh / 3.6  // Convert km/h to m/s
         val travelTimeHours = if (avgSpeedKmh > 0) distanceKm / avgSpeedKmh else 0.0
-        val gradientRad = Math.toRadians(Math.atan(gradientPercent / 100.0) * 180 / Math.PI)
+        val gradientRad = Math.atan(gradientPercent / 100.0) // Radians
 
         // Use vehicle-specific mass (add rider weight for scooters)
         val vehicleMassKg = when (vehicle.vehicleType) {
@@ -216,13 +220,14 @@ object RangeCalculator {
         }
         val auxEnergyKwh = (acPower + electronicsLoad) * travelTimeHours
 
-        // 5. Regenerative Braking Recovery (kWh)
-        val regenFactor = when {
-            avgSpeedKmh < 30 -> REGEN_EFFICIENCY * 0.20  // High regen in city
-            avgSpeedKmh < 60 -> REGEN_EFFICIENCY * 0.10  // Moderate regen in suburbs
-            else -> REGEN_EFFICIENCY * 0.03               // Minimal regen on highway
-        }
-        val regenRecovery = (rollingEnergyKwh + aeroEnergyKwh) * regenFactor
+        // 5. Regenerative Braking Recovery (kWh) — based on kinetic stops
+        val numStops = when {
+            avgSpeedKmh < 30 -> distanceKm * 2.0   // 2 stops per km in city
+            avgSpeedKmh < 60 -> distanceKm * 0.5   // 1 stop per 2 km in suburbs
+            else -> distanceKm * 0.1               // Minimal stops on highway
+        } * trafficMultiplier
+        val kineticEnergyPerStopKwh = (0.5 * vehicleMassKg * avgSpeedMs.pow(2)) / 3_600_000.0
+        val regenRecovery = (kineticEnergyPerStopKwh * numStops) * REGEN_EFFICIENCY
 
         // Total Energy = (movement + aux) / drivetrain_efficiency - regen
         val grossEnergy = (rollingEnergyKwh + aeroEnergyKwh + gradientEnergyKwh + auxEnergyKwh)
@@ -281,7 +286,8 @@ object RangeCalculator {
         routeDurationMinutes: Double,
         temperatureC: Double = 35.0,
         acOn: Boolean = true,
-        safetyMargin: Double = 0.10
+        safetyMargin: Double = 0.10,
+        trafficMultiplier: Double = 1.0
     ): RouteFeasibilityResult {
         val avgSpeedKmh = if (routeDurationMinutes > 0) {
             (routeDistanceKm / routeDurationMinutes) * 60.0
@@ -292,7 +298,8 @@ object RangeCalculator {
             distanceKm = routeDistanceKm,
             avgSpeedKmh = avgSpeedKmh,
             temperatureC = temperatureC,
-            acOn = acOn
+            acOn = acOn,
+            trafficMultiplier = trafficMultiplier
         )
 
         val availableEnergy = vehicle.batteryCapacityKwh * (batteryPercent / 100.0)
@@ -452,7 +459,7 @@ data class RouteFeasibilityResult(
 
     /** Display-friendly feasibility message */
     val statusMessage: String get() = when {
-        !isFeasible -> "⚠️ Insufficient battery — need ${String.format("%.1f", energyRequired)} kWh, have ${String.format("%.1f", energyAvailable)} kWh"
+        !isFeasible -> "⚠️ Insufficient battery — need ${String.format(java.util.Locale.US, "%.1f", energyRequired)} kWh, have ${String.format(java.util.Locale.US, "%.1f", energyAvailable)} kWh"
         arrivalBatteryPercent > 30 -> "✅ Comfortable — arrive with ${arrivalBatteryPercent.toInt()}% battery"
         arrivalBatteryPercent > 15 -> "⚡ Feasible — arrive with ${arrivalBatteryPercent.toInt()}% battery"
         else -> "⚠️ Tight — arrive with only ${arrivalBatteryPercent.toInt()}% battery"

@@ -472,12 +472,23 @@ class MapViewModel(application: Application, private val state: SavedStateHandle
         triggerChargerDetailsRefresh.value = true
     }
 
+    private var currentDetailSource: androidx.lifecycle.LiveData<net.vonforst.evmap.viewmodel.Resource<net.vonforst.evmap.model.ChargeLocation>>? = null
+    private val detailObserver = androidx.lifecycle.Observer<net.vonforst.evmap.viewmodel.Resource<net.vonforst.evmap.model.ChargeLocation>> { response ->
+        if (response.status == net.vonforst.evmap.viewmodel.Status.SUCCESS) {
+            chargerSparse.value = response.data
+        }
+    }
+
     fun loadChargerById(chargerId: Long) {
         chargerSparse.value = null
-        repo.getChargepointDetail(chargerId).observeForever { response ->
-            if (response.status == Status.SUCCESS) {
-                chargerSparse.value = response.data
-            }
+        currentDetailSource?.removeObserver(detailObserver)
+        currentDetailSource = repo.getChargepointDetail(chargerId).apply {
+            observeForever(detailObserver)
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        currentDetailSource?.removeObserver(detailObserver)
     }
 }

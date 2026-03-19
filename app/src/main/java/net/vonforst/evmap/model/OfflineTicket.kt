@@ -28,7 +28,10 @@ data class OfflineTicket(
 
     /**
      * Checks if this ticket has expired based on the current system time.
-     * Uses device clock — no network required.
+     * 
+     * SECURITY PROTOCOL: Uses device clock. To fully secure offline verification
+     * against device-clock time-spoofing attacks, this should be synchronized
+     * with `SystemClock.elapsedRealtime()` linked to an active NTP handshake.
      */
     fun isExpired(): Boolean = System.currentTimeMillis() / 1000 > expiryTimestamp
 

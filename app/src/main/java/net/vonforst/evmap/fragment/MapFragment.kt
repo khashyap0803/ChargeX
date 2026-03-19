@@ -242,9 +242,9 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
             val systemWindowInsetTop = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top
             val margin =
                 if (binding.toolbarContainer.layoutParams.width == ViewGroup.LayoutParams.MATCH_PARENT) {
-                    systemWindowInsetTop + (48 * density).toInt() + (28 * density).toInt()
+                    systemWindowInsetTop + resources.getDimensionPixelSize(R.dimen.map_toolbar_height) + resources.getDimensionPixelSize(R.dimen.map_margin_top)
                 } else {
-                    systemWindowInsetTop + (12 * density).toInt()
+                    systemWindowInsetTop + resources.getDimensionPixelSize(R.dimen.map_margin_top_narrow)
                 }
             v.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 topMargin = margin
@@ -254,7 +254,7 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
             }
 
             // set map padding so that compass is not obstructed by toolbar
-            mapTopPadding = systemWindowInsetTop + (48 * density).toInt() + (16 * density).toInt()
+            mapTopPadding = systemWindowInsetTop + resources.getDimensionPixelSize(R.dimen.map_toolbar_height) + resources.getDimensionPixelSize(R.dimen.map_compass_margin_top)
             mapBottomPadding = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
             // if we actually use map.setPadding here, MapLibre will re-trigger onApplyWindowInsets
             // and cause an infinite loop. So we rely on onMapReady being called later than
@@ -436,6 +436,11 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
                     // ALWAYS store in pending fields so onMapReady can apply to new MarkerManager
                     pendingRangeFilterKm = rangeKm
                     pendingUserLocation = userLatLng
+                    userLatLng?.let {
+                        findNavController().currentBackStackEntry?.savedStateHandle?.set("user_location_lat", it.latitude)
+                        findNavController().currentBackStackEntry?.savedStateHandle?.set("user_location_lng", it.longitude)
+                    }
+                    findNavController().currentBackStackEntry?.savedStateHandle?.set("empty_popup_shown", false)
                     android.util.Log.d("MapFragment", "Stored pending filter: rangeKm=$rangeKm, userLoc=$userLatLng")
 
                     // Also apply to current markerManager if it exists
@@ -456,6 +461,8 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
                     ).show()
                     pendingRangeFilterKm = 0f
                     pendingUserLocation = null
+                    findNavController().currentBackStackEntry?.savedStateHandle?.remove<Double>("user_location_lat")
+                    findNavController().currentBackStackEntry?.savedStateHandle?.remove<Double>("user_location_lng")
                     markerManager?.let { mm ->
                         mm.rangeFilterKm = 0f
                         vm.chargepoints.value?.data?.let { cp -> mm.chargepoints = cp }
@@ -1123,6 +1130,17 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
         // Clear old MarkerManager's markers so stale unfiltered markers
         // don't persist on the map when a new instance is created with a range filter
         markerManager?.clearAll()
+        
+        // Synchronously fetch state to prevent marker flash race condition
+        val savedState: androidx.lifecycle.SavedStateHandle? = try { findNavController().currentBackStackEntry?.savedStateHandle } catch(e: Exception) { null }
+        val syncRange = savedState?.get<Float>("range_filter_km") ?: 0f
+        if (syncRange > 0f) {
+            pendingRangeFilterKm = syncRange
+            val lat = savedState?.get<Double>("user_location_lat")
+            val lng = savedState?.get<Double>("user_location_lng")
+            if (lat != null && lng != null) pendingUserLocation = LatLng(lat, lng)
+        }
+
         markerManager = MarkerManager(context, map, this).apply {
             onChargerClick = {
                 vm.chargerSparse.value = it
@@ -1135,6 +1153,19 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
                         newZoom
                     )
                 )
+            }
+            onFilterResult = { count ->
+                if (count == 0 && rangeFilterKm > 0f) {
+                    val previouslyShown = try { findNavController().currentBackStackEntry?.savedStateHandle?.get<Boolean>("empty_popup_shown") ?: false } catch(e: Exception) { false }
+                    if (!previouslyShown) {
+                        try { findNavController().currentBackStackEntry?.savedStateHandle?.set("empty_popup_shown", true) } catch(e: Exception) {}
+                        MaterialAlertDialogBuilder(requireContext())
+                            .setTitle("No Stations Available")
+                            .setMessage(getString(R.string.emergency_no_chargers, rangeFilterKm))
+                            .setPositiveButton(R.string.ok, null)
+                            .show()
+                    }
+                }
             }
             // Apply pending range filter BEFORE setting chargepoints so filtering is active
             if (pendingRangeFilterKm > 0f) {
@@ -1572,6 +1603,9 @@ class MapFragment : Fragment(), OnMapReadyCallback, MenuProvider {
     }
 
     override fun onDestroyView() {
+        // Prevent memory leak by stripping markers before map view is destroyed
+        markerManager?.clearAll()
+
         super.onDestroyView()
         detailsDialog.onDestroy()
 

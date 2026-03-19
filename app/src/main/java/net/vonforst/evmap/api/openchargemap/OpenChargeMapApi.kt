@@ -101,7 +101,21 @@ interface OpenChargeMapApi {
                     val new = original.newBuilder()
                         .header("X-API-Key", apikey)
                         .build()
-                    chain.proceed(new)
+                    
+                    var response = chain.proceed(new)
+                    var tryCount = 0
+                    val maxTries = 3
+                    var waitMs = 500L
+                    
+                    // Exponential backoff for HTTP 429 Too Many Requests
+                    while (!response.isSuccessful && response.code == 429 && tryCount < maxTries) {
+                        response.close()
+                        try { Thread.sleep(waitMs) } catch (e: InterruptedException) {}
+                        tryCount++
+                        waitMs *= 2
+                        response = chain.proceed(new)
+                    }
+                    response
                 }
                 if (BuildConfig.DEBUG) {
                     addDebugInterceptors()
@@ -256,16 +270,16 @@ class OpenChargeMapApiWrapper(
         }
     }
 
-    private fun postprocessResult(
+    private suspend fun postprocessResult(
         chargers: List<OCMChargepoint>,
         minPower: Double?,
         connectorsVal: MultipleChoiceFilterValue?,
         minConnectors: Int?,
         excludeFaults: Boolean?,
         referenceData: OCMReferenceData
-    ): List<ChargepointListItem> {
+    ): List<ChargepointListItem> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
         // apply filters which OCM does not support natively
-        return chargers.filter { it ->
+        chargers.filter { it ->
             it.connections
                 .filter { it.power == null || it.power >= (minPower ?: 0.0) }
                 .filter { if (connectorsVal != null && !connectorsVal.all) it.connectionTypeId in connectorsVal.values.map { it.toLong() } else true }

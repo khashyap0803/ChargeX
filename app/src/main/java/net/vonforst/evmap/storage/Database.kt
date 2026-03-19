@@ -68,14 +68,13 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun stationOccupancyDao(): StationOccupancyDao
 
     companion object {
-        private lateinit var context: Context
-        private val database: AppDatabase by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-            initDb(SpatiaRoom.databaseBuilder(context, AppDatabase::class.java, "evmap.db"))
-        }
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
 
         fun getInstance(context: Context): AppDatabase {
-            this.context = context.applicationContext
-            return database
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: initDb(SpatiaRoom.databaseBuilder(context.applicationContext, AppDatabase::class.java, "evmap.db")).also { INSTANCE = it }
+            }
         }
 
         /**
@@ -581,27 +580,21 @@ abstract class AppDatabase : RoomDatabase() {
 
     /**
      * Creates a backup of the database to evmap-backup.db.
-     *
-     * The backup excludes cached data which can easily be retrieved from the network on restore.
+     * Uses a direct file copy to prevent CursorWindowAllocationException
+     * from attempting to load the entire DB into memory.
      */
     suspend fun createBackup(context: Context, fileName: String) {
-        val db = getInstance(context.applicationContext)
-        val backupDb = initDb(
-            SpatiaRoom.databaseBuilder(
-                context.applicationContext,
-                AppDatabase::class.java,
-                fileName
-            )
-        )
-        backupDb.clearAllTables()
-
-        val favorites = db.favoritesDao().getAllFavoritesAsync()
-        backupDb.chargeLocationsDao().insert(*favorites.map { it.charger }.toTypedArray())
-        backupDb.favoritesDao().insert(*favorites.map { it.favorite }.toTypedArray())
-        backupDb.filterProfileDao().insert(*db.filterProfileDao().getAllProfiles().toTypedArray())
-        backupDb.filterValueDao().insert(*db.filterValueDao().getAllFilterValues().toTypedArray())
-        backupDb.recentAutocompletePlaceDao()
-            .insert(*db.recentAutocompletePlaceDao().getAllAsync().toTypedArray())
-        backupDb.close()
+        val dbFile = context.applicationContext.getDatabasePath("evmap.db")
+        val backupFile = context.applicationContext.getDatabasePath(fileName)
+        
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            if (dbFile.exists()) {
+                java.io.FileInputStream(dbFile).channel.use { src ->
+                    java.io.FileOutputStream(backupFile).channel.use { dst ->
+                        dst.transferFrom(src, 0, src.size())
+                    }
+                }
+            }
+        }
     }
 }

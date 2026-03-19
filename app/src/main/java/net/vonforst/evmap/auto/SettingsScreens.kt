@@ -75,6 +75,7 @@ class SettingsScreen(ctx: CarContext, val session: EVMapSession) : Screen(ctx), 
                     setBrowsable(true)
                     setOnClickListener {
                         screenManager.push(DataSettingsScreen(carContext, session))
+                        screenManager.remove(this@SettingsScreen)
                     }
                 }.build())
                 if (supportsCarApiLevel3(carContext)) {
@@ -89,6 +90,7 @@ class SettingsScreen(ctx: CarContext, val session: EVMapSession) : Screen(ctx), 
                             .setBrowsable(true)
                             .setOnClickListener {
                                 screenManager.push(VehicleDataScreen(carContext, session))
+                                screenManager.remove(this@SettingsScreen)
                             }
                             .build()
                     )
@@ -145,6 +147,7 @@ class SettingsScreen(ctx: CarContext, val session: EVMapSession) : Screen(ctx), 
                         .setBrowsable(true)
                         .setOnClickListener(ParkedOnlyOnClickListener.create {
                             screenManager.push(AboutScreen(carContext, session))
+                            screenManager.remove(this@SettingsScreen)
                         })
                         .build()
                 )

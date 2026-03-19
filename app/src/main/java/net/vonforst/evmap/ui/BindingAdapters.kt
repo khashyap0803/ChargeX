@@ -361,21 +361,12 @@ fun time(value: Int): String {
 
 fun distance(meters: Number?, ctx: Context): String? {
     if (meters == null) return null
-    if (shouldUseImperialUnits(ctx)) {
-        val ft = meters.toDouble() / meterPerFt
-        val mi = meters.toDouble() / 1e3 / kmPerMile
-        return when {
-            ft < 1000 -> "%.0f ft".format(ft)
-            mi < 10 -> "%.1f mi".format(mi)
-            else -> "%.0f mi".format(mi)
-        }
-    } else {
-        val km = meters.toDouble() / 1e3
-        return when {
-            km < 1 -> "%.0f m".format(meters.toDouble())
-            km < 10 -> "%.1f km".format(km)
-            else -> "%.0f km".format(km)
-        }
+    // Always use metric (km/m) — this is an India-focused app
+    val km = meters.toDouble() / 1e3
+    return when {
+        km < 1 -> "%.0f m".format(meters.toDouble())
+        km < 10 -> "%.1f km".format(km)
+        else -> "%.0f km".format(km)
     }
 }
 

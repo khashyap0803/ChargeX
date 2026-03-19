@@ -183,10 +183,11 @@ class MarkerManager(
             userLocation!!.latitude, userLocation!!.longitude,
             lat, lng
         ) / 1000.0 // meters to km
-        val detourFactor = 1.3 // Accounts for driving routes vs straight-line
-        val inRange = (dist * detourFactor) <= rangeFilterKm
+        // Compare raw Haversine distance — RangeCalculator already applies
+        // real-world corrections (ARAI 15%, temperature, AC), so no extra penalty needed
+        val inRange = dist <= rangeFilterKm
         if (!inRange) {
-            android.util.Log.v("MarkerManager", "FILTERED OUT: at %.1f km (max: %.1f km)".format((dist * detourFactor), rangeFilterKm.toDouble()))
+            android.util.Log.v("MarkerManager", "FILTERED OUT: at %.1f km (max: %.1f km)".format(dist, rangeFilterKm.toDouble()))
         }
         return inRange
     }

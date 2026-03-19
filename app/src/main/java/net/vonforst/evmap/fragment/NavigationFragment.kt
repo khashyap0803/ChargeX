@@ -198,9 +198,12 @@ class NavigationFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val googleApiKey = try {
                 val keyResId = requireContext().resources.getIdentifier(
-                    "google_directions_key", "string", requireContext().packageName
+                    "google_maps_key", "string", requireContext().packageName
                 )
-                if (keyResId != 0) requireContext().getString(keyResId) else null
+                if (keyResId != 0) {
+                    val key = requireContext().getString(keyResId)
+                    if (key.isNotBlank()) key else null
+                } else null
             } catch (e: Exception) {
                 null
             }

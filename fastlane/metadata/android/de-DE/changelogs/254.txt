@@ -1,2 +1,0 @@
-Fehler behoben:
-- Echtzeitdaten für Tesla Supercharger repariert

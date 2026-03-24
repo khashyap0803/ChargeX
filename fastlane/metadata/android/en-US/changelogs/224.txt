@@ -1,3 +1,0 @@
-Bugfixes:
-- Fixed problems with OpenStreetMap
-- Fixed crashes

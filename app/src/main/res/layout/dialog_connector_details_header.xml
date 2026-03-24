@@ -5,15 +5,15 @@
 
     <data>
 
-        <import type="net.vonforst.evmap.adapter.ConnectorAdapter.ChargepointWithAvailability" />
+        <import type="com.chargex.india.adapter.ConnectorAdapter.ChargepointWithAvailability" />
 
         <import type="com.github.erfansn.localeconfigx.LocaleConfigXKt" />
 
-        <import type="net.vonforst.evmap.ui.BindingAdaptersKt" />
+        <import type="com.chargex.india.ui.BindingAdaptersKt" />
 
-        <import type="net.vonforst.evmap.api.UtilsKt" />
+        <import type="com.chargex.india.api.UtilsKt" />
 
-        <import type="net.vonforst.evmap.api.ChargepointApiKt" />
+        <import type="com.chargex.india.api.ChargepointApiKt" />
 
         <variable
             name="item"

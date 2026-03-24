@@ -1,5 +1,0 @@
-Improvements:
-- New translation: Dutch
-
-Bugfixes:
-- Fixed crashes

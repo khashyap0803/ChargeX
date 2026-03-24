@@ -5,19 +5,19 @@
 
     <data>
 
-        <import type="net.vonforst.evmap.api.UtilsKt" />
+        <import type="com.chargex.india.api.UtilsKt" />
 
         <import type="com.github.erfansn.localeconfigx.LocaleConfigXKt" />
 
-        <import type="net.vonforst.evmap.viewmodel.Status" />
+        <import type="com.chargex.india.viewmodel.Status" />
 
-        <import type="net.vonforst.evmap.ui.BindingAdaptersKt" />
+        <import type="com.chargex.india.ui.BindingAdaptersKt" />
 
-        <import type="net.vonforst.evmap.api.ChargepointApiKt" />
+        <import type="com.chargex.india.api.ChargepointApiKt" />
 
         <variable
             name="item"
-            type="net.vonforst.evmap.viewmodel.FavoritesViewModel.FavoritesListItem" />
+            type="com.chargex.india.viewmodel.FavoritesViewModel.FavoritesListItem" />
     </data>
 
     <FrameLayout

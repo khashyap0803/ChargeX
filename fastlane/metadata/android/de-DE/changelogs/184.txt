@@ -1,2 +1,0 @@
-Fehler behoben:
-- Abstürze im Zusammenspiel mit bestimmten Filtern behoben

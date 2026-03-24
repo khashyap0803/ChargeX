@@ -1,7 +1,0 @@
-Improvements:
-- New button to reset filter setting
-- Filter menu with new icons
-- Updated translations
-
-Bugfixes:
-- Fixed crashes

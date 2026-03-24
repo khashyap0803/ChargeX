@@ -23,7 +23,7 @@
         android:layout_marginStart="32dp"
         android:layout_marginEnd="32dp"
         android:layout_marginBottom="16dp"
-        android:text="@string/welcome_to_evmap"
+        android:text="@string/welcome_to_chargex"
         android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
         app:layout_constraintBottom_toTopOf="@+id/welcomeText1"
         app:layout_constraintEnd_toEndOf="parent"

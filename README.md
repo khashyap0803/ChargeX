@@ -1,14 +1,14 @@
-EVMap [![Build Status](https://github.com/ev-map/EVMap/actions/workflows/tests.yml/badge.svg)](https://github.com/ev-map/EVMap/actions)
+ChargeX [![Build Status](https://github.com/ev-map/ChargeX/actions/workflows/tests.yml/badge.svg)](https://github.com/ev-map/ChargeX/actions)
 =====
 
 <a href="https://ev-map.app" target="_blank">
-<img src="https://raw.githubusercontent.com/ev-map/EVMap/master/_img/feature_graphic.svg" width=700 alt="Logo"/></a>
+<img src="https://raw.githubusercontent.com/ev-map/ChargeX/master/_img/feature_graphic.svg" width=700 alt="Logo"/></a>
 
 Android app to find electric vehicle charging stations.
 
-<a href="https://play.google.com/store/apps/details?id=net.vonforst.evmap" target="_blank">
+<a href="https://play.google.com/store/apps/details?id=com.chargex.india" target="_blank">
 <img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" alt="Get it on Google Play" height="100"/></a>
-<a href="https://f-droid.org/repository/browse/?fdid=net.vonforst.evmap" target="_blank">
+<a href="https://f-droid.org/repository/browse/?fdid=com.chargex.india" target="_blank">
 <img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="100"/></a>
 
 Features
@@ -29,7 +29,7 @@ Features
 Screenshots
 -----------
 
-<img src="https://raw.githubusercontent.com/ev-map/EVMap/master/_img/screenshots/phone/en/mapbox/01_map.png" width=250 alt="Screenshot 1"/><img src="https://raw.githubusercontent.com/ev-map/EVMap/master/_img/screenshots/phone/en/mapbox/02_detail.png" width=250 alt="Screenshot 2"/>
+<img src="https://raw.githubusercontent.com/ev-map/ChargeX/master/_img/screenshots/phone/en/mapbox/01_map.png" width=250 alt="Screenshot 1"/><img src="https://raw.githubusercontent.com/ev-map/ChargeX/master/_img/screenshots/phone/en/mapbox/02_detail.png" width=250 alt="Screenshot 2"/>
 
 Development setup
 -----------------
@@ -38,7 +38,7 @@ The App is developed using Android Studio and should pretty much work out-of-the
 the Git repository and open the project with Android Studio.
 
 The only exception is that you need to obtain some API keys for the different data sources that
-EVMap uses and put them into the app in the form of a resource file called `apikeys.xml` under
+ChargeX uses and put them into the app in the form of a resource file called `apikeys.xml` under
 `app/src/main/res/values`. You can find more information on which API keys are necessary for which
 features and how they can be obtained in our [documentation page](doc/api_keys.md).
 
@@ -48,14 +48,14 @@ There are four different build flavors, `googleNormal`, `fossNormal`, `googleAut
 - The `foss` variants only use OSM data for the base map and place search. They should run on most Android devices, even those without Google Play Services.
     - `fossNormal` is intended to run on smartphones and tablets, and also includes the Android
       Auto app for use on the car display (however Android Auto may not work if the app is not
-      installed from Google Play, see https://github.com/ev-map/EVMap/issues/319).
+      installed from Google Play, see https://github.com/ev-map/ChargeX/issues/319).
     - `fossAutomotive` can be installed directly on
       [Android Automotive OS (AAOS)](https://source.android.com/docs/automotive/start/what_automotive)
       headunits without Google services.
       It does not provide the usual smartphone UI, and requires an implementation of the
       [AOSP template app host](https://source.android.com/docs/automotive/hmi/aosp_host)
-      to be installed. If you are an OEM and would like to distribute EVMap to your AAOS vehicles,
-      please [get in touch](mailto:evmap@vonforst.net).
+      to be installed. If you are an OEM and would like to distribute ChargeX to your AAOS vehicles,
+      please [get in touch](mailto:chargex@vonforst.net).
 - The `google` variants also include access to Google Maps data.
     - `googleNormal` is intended to run on smartphones and tablets, and also includes the Android
       Auto app for use on the car display.
@@ -72,19 +72,19 @@ app.
 Translations
 ------------
 
-You can use our [Weblate page](https://hosted.weblate.org/projects/evmap/) to help translate EVMap
+You can use our [Weblate page](https://hosted.weblate.org/projects/chargex/) to help translate ChargeX
 into new languages.
 
-<a href="https://hosted.weblate.org/engage/evmap/">
-<img src="https://hosted.weblate.org/widgets/evmap/-/open-graph.png" width="400" alt="Translation status" />
+<a href="https://hosted.weblate.org/engage/chargex/">
+<img src="https://hosted.weblate.org/widgets/chargex/-/open-graph.png" width="400" alt="Translation status" />
 </a>
 
 Sponsors
 --------
 
-Many users currently support the development EVMap with their donations. You can find more
-information on the [Donate page](https://ev-map.app/donate/) on the EVMap website.
+Many users currently support the development ChargeX with their donations. You can find more
+information on the [Donate page](https://ev-map.app/donate/) on the ChargeX website.
 
 <a href="https://www.jawg.io"><img src="https://www.jawg.io/static/Blue@10x-9cdc4596e4e59acbd9ead55e9c28613e.png" alt="JawgMaps" height="38"/></a><br>
-Since May 2024, **JawgMaps** provide their OpenStreetMap vector map tiles service to EVMap for
+Since May 2024, **JawgMaps** provide their OpenStreetMap vector map tiles service to ChargeX for
 free, i.e. the background map displayed in the app if OpenStreetMap is selected as the data source.

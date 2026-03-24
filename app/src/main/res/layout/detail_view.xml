@@ -11,27 +11,27 @@
 
         <import type="java.time.ZonedDateTime" />
 
-        <import type="net.vonforst.evmap.model.ChargeLocation" />
+        <import type="com.chargex.india.model.ChargeLocation" />
 
-        <import type="net.vonforst.evmap.model.Chargepoint" />
+        <import type="com.chargex.india.model.Chargepoint" />
 
-        <import type="net.vonforst.evmap.model.ChargeCard" />
+        <import type="com.chargex.india.model.ChargeCard" />
 
-        <import type="net.vonforst.evmap.api.availability.ChargeLocationStatus" />
+        <import type="com.chargex.india.api.availability.ChargeLocationStatus" />
 
-        <import type="net.vonforst.evmap.adapter.DataBindingAdaptersKt" />
+        <import type="com.chargex.india.adapter.DataBindingAdaptersKt" />
 
-        <import type="net.vonforst.evmap.adapter.DetailsAdapterKt" />
+        <import type="com.chargex.india.adapter.DetailsAdapterKt" />
 
-        <import type="net.vonforst.evmap.utils.LocationUtilsKt" />
+        <import type="com.chargex.india.utils.LocationUtilsKt" />
 
-        <import type="net.vonforst.evmap.viewmodel.Resource" />
+        <import type="com.chargex.india.viewmodel.Resource" />
 
-        <import type="net.vonforst.evmap.viewmodel.Status" />
+        <import type="com.chargex.india.viewmodel.Status" />
 
-        <import type="net.vonforst.evmap.ui.BindingAdaptersKt" />
+        <import type="com.chargex.india.ui.BindingAdaptersKt" />
 
-        <import type="net.vonforst.evmap.api.ChargepointApiKt" />
+        <import type="com.chargex.india.api.ChargepointApiKt" />
 
 
 
@@ -62,7 +62,7 @@
 
         <variable
             name="teslaPricing"
-            type="net.vonforst.evmap.api.availability.tesla.Pricing" />
+            type="com.chargex.india.api.availability.tesla.Pricing" />
 
         <variable
             name="chargeCards"
@@ -467,6 +467,15 @@
                         android:text="@string/charger_website"
                         app:goneUnless="@{charger.data != null &amp;&amp; charger.data.chargerUrl != null}"
                         app:icon="@drawable/ic_link" />
+
+                    <Button
+                        android:id="@+id/btnBookStation"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:text="⚡ Book Station"
+                        app:icon="@drawable/ic_verified" />
 
                 </LinearLayout>
             </HorizontalScrollView>

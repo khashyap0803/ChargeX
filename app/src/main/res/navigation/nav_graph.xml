@@ -10,7 +10,7 @@
         app:startDestination="@id/map_frag">
         <fragment
             android:id="@+id/map_frag"
-            android:name="net.vonforst.evmap.fragment.MapFragment"
+            android:name="com.chargex.india.fragment.MapFragment"
             android:label=""
             tools:layout="@layout/fragment_map">
             <action
@@ -54,6 +54,13 @@
                 app:exitAnim="@animator/nav_default_exit_anim"
                 app:popEnterAnim="@animator/nav_default_pop_enter_anim"
                 app:popExitAnim="@animator/nav_default_pop_exit_anim" />
+            <action
+                android:id="@+id/action_map_to_wallet"
+                app:destination="@id/wallet_frag"
+                app:enterAnim="@animator/nav_default_enter_anim"
+                app:exitAnim="@animator/nav_default_exit_anim"
+                app:popEnterAnim="@animator/nav_default_pop_enter_anim"
+                app:popExitAnim="@animator/nav_default_pop_exit_anim" />
             <argument
                 android:name="locationName"
                 android:defaultValue="@null"
@@ -75,8 +82,13 @@
         </fragment>
     </navigation>
     <fragment
+        android:id="@+id/wallet_frag"
+        android:name="com.chargex.india.fragment.WalletFragment"
+        android:label="Wallet"
+        tools:layout="@layout/fragment_wallet" />
+    <fragment
         android:id="@+id/about"
-        android:name="net.vonforst.evmap.fragment.preference.AboutFragment"
+        android:name="com.chargex.india.fragment.preference.AboutFragment"
         android:label="@string/about"
         tools:layout="@layout/fragment_preference">
         <action
@@ -88,17 +100,17 @@
     </fragment>
     <fragment
         android:id="@+id/settings"
-        android:name="net.vonforst.evmap.fragment.preference.SettingsFragment"
+        android:name="com.chargex.india.fragment.preference.SettingsFragment"
         android:label="@string/settings"
         tools:layout="@layout/fragment_preference" />
     <fragment
         android:id="@+id/settings_ui"
-        android:name="net.vonforst.evmap.fragment.preference.UiSettingsFragment"
+        android:name="com.chargex.india.fragment.preference.UiSettingsFragment"
         android:label="@string/settings_ui"
         tools:layout="@layout/fragment_preference" />
     <fragment
         android:id="@+id/settings_data"
-        android:name="net.vonforst.evmap.fragment.preference.DataSettingsFragment"
+        android:name="com.chargex.india.fragment.preference.DataSettingsFragment"
         android:label="@string/settings_data_sources"
         tools:layout="@layout/fragment_preference">
         <argument
@@ -108,7 +120,7 @@
     </fragment>
     <fragment
         android:id="@+id/settings_developer"
-        android:name="net.vonforst.evmap.fragment.preference.DeveloperSettingsFragment"
+        android:name="com.chargex.india.fragment.preference.DeveloperSettingsFragment"
         android:label="@string/developer_options"
         tools:layout="@layout/fragment_preference" />
     <navigation
@@ -116,7 +128,7 @@
         app:startDestination="@id/favs_frag">
         <fragment
             android:id="@+id/favs_frag"
-            android:name="net.vonforst.evmap.fragment.FavoritesFragment"
+            android:name="com.chargex.india.fragment.FavoritesFragment"
             android:label="@string/menu_favs"
             tools:layout="@layout/fragment_favorites">
             <action
@@ -126,22 +138,22 @@
     </navigation>
     <fragment
         android:id="@+id/filter"
-        android:name="net.vonforst.evmap.fragment.FilterFragment"
+        android:name="com.chargex.india.fragment.FilterFragment"
         android:label="@string/menu_filter"
         tools:layout="@layout/fragment_filter" />
     <fragment
         android:id="@+id/filter_profiles"
-        android:name="net.vonforst.evmap.fragment.FilterProfilesFragment"
+        android:name="com.chargex.india.fragment.FilterProfilesFragment"
         android:label="@string/menu_manage_filter_profiles"
         tools:layout="@layout/fragment_filter_profiles" />
     <fragment
         android:id="@+id/donate"
-        android:name="net.vonforst.evmap.fragment.DonateFragment"
+        android:name="com.chargex.india.fragment.DonateFragment"
         android:label="@string/donate"
         tools:layout="@layout/fragment_donate" />
     <dialog
         android:id="@+id/opensource_donations"
-        android:name="net.vonforst.evmap.fragment.updatedialogs.OpensourceDonationsDialogFragment"
+        android:name="com.chargex.india.fragment.updatedialogs.OpensourceDonationsDialogFragment"
         android:label="@string/donation_dialog_title"
         tools:layout="@layout/dialog_opensource_donations">
         <action
@@ -159,7 +171,7 @@
         app:customDestination="github_sponsors" />
     <fragment
         android:id="@+id/onboarding"
-        android:name="net.vonforst.evmap.fragment.OnboardingFragment"
+        android:name="com.chargex.india.fragment.OnboardingFragment"
         android:label="OnboardingFragment">
         <action
             android:id="@+id/action_onboarding_to_map"
@@ -169,7 +181,7 @@
     </fragment>
     <fragment
         android:id="@+id/oauth_login"
-        android:name="net.vonforst.evmap.fragment.oauth.OAuthLoginFragment"
+        android:name="com.chargex.india.fragment.oauth.OAuthLoginFragment"
         android:label="@string/login">
         <argument
             android:name="url"
@@ -184,7 +196,7 @@
     </fragment>
     <fragment
         android:id="@+id/navigation_frag"
-        android:name="net.vonforst.evmap.fragment.NavigationFragment"
+        android:name="com.chargex.india.fragment.NavigationFragment"
         android:label="Navigation"
         tools:layout="@layout/fragment_navigation">
         <argument
@@ -199,12 +211,12 @@
     </fragment>
     <fragment
         android:id="@+id/vehicle_input_frag"
-        android:name="net.vonforst.evmap.fragment.VehicleInputFragment"
+        android:name="com.chargex.india.fragment.VehicleInputFragment"
         android:label="Vehicle Profile"
         tools:layout="@layout/fragment_vehicle_input" />
     <fragment
         android:id="@+id/booking_verification_frag"
-        android:name="net.vonforst.evmap.fragment.BookingVerificationFragment"
+        android:name="com.chargex.india.fragment.BookingVerificationFragment"
         android:label="Booking Verification"
         tools:layout="@layout/fragment_booking_verification" />
 </navigation>

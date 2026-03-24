@@ -1,6 +1,6 @@
 # MapFragment.kt
 
-> **File**: `app/src/main/java/net/vonforst/evmap/fragment/MapFragment.kt`  
+> **File**: `app/src/main/java/com/chargex/india/fragment/MapFragment.kt`  
 > **Purpose**: The main map screen — the heart of the app. Displays charging stations on an interactive map with search, filtering, range-based station hiding, vehicle data persistence, and charger detail views.
 
 ---
@@ -13,7 +13,12 @@
 - Search bar for finding places
 - Filter controls for connector types and power
 - Bottom sheet showing charger details
-- FABs (floating buttons) for vehicle input, my location, etc.
+- **FABs (floating buttons)**:
+  - 📥 **Download Stations**: Triggers OSM data download for GraphHopper offline navigation.
+  - 💰 **Wallet**: Opens `WalletFragment` to view balance and add funds.
+  - 🔋 **Vehicle**: Opens `VehicleInputFragment` for range calculation.
+  - 📍 **Location**: Centers map on user.
+  - 🔧 **Settings**: Opens filters/sync menu.
 - Range-based station filtering with pending state management
 - Vehicle data forwarding to NavigationFragment
 - Marker lifecycle cleanup (clearAll)
@@ -35,7 +40,7 @@
 │        ⚡     ⚡  ③                      │
 │                              📍 ← You   │
 │                                          │
-│  [🔋] [📍] [🔧]  ← FABs               │
+│  [📥] [💰] [🔋] [📍] [🔧]  ← FABs       │
 ├──────────────────────────────────────────┤
 │  ┌── Bottom Sheet (slides up) ────────┐ │
 │  │ Station Name                       │ │

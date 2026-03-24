@@ -1,3 +1,0 @@
-Fehler behoben:
-- Abstürze behoben
-- Aktueller Standort wurde nicht immer angezeigt, obwohl verfügbar

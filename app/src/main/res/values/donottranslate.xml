@@ -14,7 +14,7 @@
     <string name="about_contributors_list">
         ChargeX India Team
     </string>
-    <string name="hide_on_scroll_fab_behavior">net.vonforst.evmap.ui.HideOnScrollFabBehavior</string>
+    <string name="hide_on_scroll_fab_behavior">com.chargex.india.ui.HideOnScrollFabBehavior</string>
     <string name="paypal_link" translatable="false">https://chargex.india</string>
     <string name="donate_link" translatable="false">https://chargex.india/donate/</string>
     <string name="copyright_summary">©2025–2026 ChargeX India Team</string>

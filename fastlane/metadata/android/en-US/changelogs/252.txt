@@ -1,3 +1,0 @@
-Bugfixes:
-- Fixed display errors
-- Fixed crashes

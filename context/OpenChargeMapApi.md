@@ -1,6 +1,6 @@
 # OpenChargeMapApi.kt
 
-> **File**: `app/src/main/java/net/vonforst/evmap/api/openchargemap/OpenChargeMapApi.kt`  
+> **File**: `app/src/main/java/com/chargex/india/api/openchargemap/OpenChargeMapApi.kt`  
 > **Purpose**: Implementation of the ChargepointApi interface for the OpenChargeMap data source — the primary source of charging station data for India.
 
 ---

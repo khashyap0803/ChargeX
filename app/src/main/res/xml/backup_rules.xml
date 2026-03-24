@@ -8,5 +8,5 @@
         path="encrypted_prefs.xml" />
     <include
         domain="database"
-        path="evmap-backup.db" />
+        path="chargex-backup.db" />
 </full-backup-content>

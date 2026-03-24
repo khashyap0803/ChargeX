@@ -1,6 +1,6 @@
 # RangeCalculator.kt
 
-> **File**: `app/src/main/java/net/vonforst/evmap/model/RangeCalculator.kt`  
+> **File**: `app/src/main/java/com/chargex/india/model/RangeCalculator.kt`  
 > **Purpose**: Calculates estimated driving range, energy consumption, and route feasibility using a **physics-based model** with per-vehicle parameters tuned for Indian driving conditions.
 
 ---

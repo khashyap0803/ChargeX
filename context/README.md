@@ -7,7 +7,7 @@ This directory contains detailed documentation for every important source file i
 ### Core App
 | File | Description |
 |------|-------------|
-| [EvMapApplication.md](EvMapApplication.md) | Application class — app startup, crash reporting, background workers |
+| [ChargeXApplication.md](ChargeXApplication.md) | Application class — app startup, crash reporting, background workers |
 | [MapsActivity.md](MapsActivity.md) | Main activity — navigation, intent handling, deep linking |
 
 ### Model Layer (Data Classes & Business Logic)

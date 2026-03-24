@@ -1,9 +1,9 @@
-Testing EVMap on Android Auto
+Testing ChargeX on Android Auto
 =============================
 
-In addition to the Android app on the phone, EVMap is also available as an Android Auto app built
+In addition to the Android app on the phone, ChargeX is also available as an Android Auto app built
 using the [Android for Cars App Library](https://developer.android.com/training/cars/apps). Its code
-is located under the `net.vonforst.evmap.auto` package.
+is located under the `com.chargex.india.auto` package.
 
 This page contains instructions on how to test the Android Auto app using the Desktop Head Unit
 (DHU).
@@ -52,7 +52,7 @@ The desktop head unit should appear and show the Android Auto interface. If this
 the Android device is connected to the DHU, you may need to open the Android Auto app again on the
 phone to accept some permissions before the connection can succeed.
 
-Testing EVMap on the DHU
+Testing ChargeX on the DHU
 ------------------------
 
 Make sure that you have selected the `googleDebug` variant in the *Build Variants*  tool window in

@@ -1,8 +1,0 @@
-Verbesserungen:
-- Neue Einstellung für Maßeinheiten
-- Anpassungen für Android 14
-- Android Auto: Weitere Detailbeschreibungen zu den Ladestationen
-- Android Auto: Löschbutton in der Filterliste
-
-Fehler behoben:
-- Fehler beim Laden der EnBW Echtzeitdaten

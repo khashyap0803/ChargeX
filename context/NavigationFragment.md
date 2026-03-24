@@ -1,6 +1,6 @@
 # NavigationFragment.kt
 
-> **File**: `app/src/main/java/net/vonforst/evmap/fragment/NavigationFragment.kt`  
+> **File**: `app/src/main/java/com/chargex/india/fragment/NavigationFragment.kt`  
 > **Purpose**: Displays the in-app navigation screen with route preview, distance, duration, **energy feasibility card**, and a button to launch turn-by-turn navigation.
 
 ---
@@ -31,6 +31,7 @@ When a user taps "Navigate" on a charging station, this fragment shows:
 ├──────────────────────────────────┤
 │  Distance: 1.8 km               │
 │  Duration: 5 min                 │
+│  [🛰 Online Route]               │
 │                                  │
 │  ┌── ⚡ Energy Feasibility ───┐ │
 │  │ Ather 450X • 5% battery    │ │
@@ -42,7 +43,7 @@ When a user taps "Navigate" on a charging station, this fragment shows:
 │  │ Light Traffic (avg 22 km/h)│ │
 │  └────────────────────────────┘ │
 │                                  │
-│  [  🧭 Start Navigation  ]      │
+│  [  🧭 Navigate in ChargeX ]      │
 └──────────────────────────────────┘
 ```
 
@@ -167,7 +168,16 @@ For scooter-sized batteries (3.7 kWh at 5% = 0.185 kWh available), 1 decimal rou
 
 ### `fetchRoute()` — Main route loading function
 
-Orchestrates GPS location, API key, route service call, and display.
+Orchestrates GPS location, API key, route service call, and display. Checks the `route.algorithm` property to set the `tvRouteSource` badge (Online, GraphHopper, or Haversine).
+
+### `startInAppNavigation()` — Offline GPS Tracking
+
+1. Triggers exact location updates (2s / 5m).
+2. Sets map camera zoom to 18x with steep tilt (60 degrees) for 3D navigation perspective.
+3. Every GPS change → `onLocationChanged`:
+   - Calculates distance `haversineDistanceKm`.
+   - Modifies `tvNavStatus` string (e.g., "🧭 Head Northeast ↗ — 3.2 km remaining").
+   - Triggers Arrival success if distance < 100 meters.
 
 ### `formatDistance(km: Double): String`
 ```kotlin
@@ -190,7 +200,6 @@ NavigationFragment.kt
     │
     ├──◀ MapFragment.kt     — User taps "Navigate" → opens this fragment
     │                          with destination coordinates AND vehicle data
-    │                          (via currentBackStackEntry.savedStateHandle)
     │
     ├──▶ RouteService.kt     — Calls getRoute() to fetch the driving route
     │
@@ -198,10 +207,7 @@ NavigationFragment.kt
     │
     ├──▶ VehicleProfile.kt   — Uses findById() and vehicle.hasAC
     │
-    ├──▶ build.gradle.kts    — API key comes from gradle.properties
-    │
-    └──▶ MapsActivity.kt     — "Start Navigation" button opens external
-                                navigation app (Google Maps, etc.)
+    └──▶ MapsActivity.kt     — "Start Navigation" opens Google Maps (if online)
 ```
 
 ---

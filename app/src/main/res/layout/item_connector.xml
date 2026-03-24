@@ -6,8 +6,8 @@
     <data>
 
         <import type="com.github.erfansn.localeconfigx.LocaleConfigXKt" />
-        <import type="net.vonforst.evmap.adapter.ConnectorAdapter.ChargepointWithAvailability" />
-        <import type="net.vonforst.evmap.ui.BindingAdaptersKt" />
+        <import type="com.chargex.india.adapter.ConnectorAdapter.ChargepointWithAvailability" />
+        <import type="com.chargex.india.ui.BindingAdaptersKt" />
 
         <variable
             name="item"

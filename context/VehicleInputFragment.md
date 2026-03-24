@@ -1,6 +1,6 @@
 # VehicleInputFragment.kt
 
-> **File**: `app/src/main/java/net/vonforst/evmap/fragment/VehicleInputFragment.kt`  
+> **File**: `app/src/main/java/com/chargex/india/fragment/VehicleInputFragment.kt`  
 > **Purpose**: UI screen where users select their EV model, set battery level, and calculate estimated range for station filtering.
 
 ---

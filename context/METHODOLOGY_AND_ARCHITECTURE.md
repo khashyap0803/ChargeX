@@ -159,12 +159,26 @@ The app follows **MVVM (Model-View-ViewModel)** methodology:
 ║  │  How:  Application class, WorkManager, Gradle build system      │  ║
 ║  │                                                                 │  ║
 ║  │  ┌──────────────────┐  ┌─────────────────┐  ┌──────────────┐  │  ║
-║  │  │EvMapApplication  │  │ MapsActivity    │  │build.gradle  │  │  ║
+║  │  │ChargeXApplication│  │ MapsActivity    │  │build.gradle  │  │  ║
 ║  │  │ • Dark mode      │  │ • Single host   │  │ • API keys   │  │  ║
 ║  │  │ • Language       │  │   activity      │  │ • Flavors    │  │  ║
 ║  │  │ • Background     │  │ • Deep linking  │  │ • SDK setup  │  │  ║
 ║  │  │   workers        │  │ • Navigation    │  │              │  │  ║
 ║  │  │ • Crash report   │  │   controller    │  │              │  │  ║
+║  │  └──────────────────┘  └─────────────────┘  └──────────────┘  │  ║
+║  └─────────────────────────────────────────────────────────────────┘  ║
+║                                                                       ║
+║  ┌─────────────────────── LAYER 6 ────────────────────────────────┐  ║
+║  │                 OFFLINE & PAYMENT SYSTEMS (NEW)                 │  ║
+║  │                                                                 │  ║
+║  │  What: Systems that function completely without internet        │  ║
+║  │                                                                 │  ║
+║  │  ┌──────────────────┐  ┌─────────────────┐  ┌──────────────┐  │  ║
+║  │  │OfflineRoute      │  │ WalletManager   │  │ Verification │  │  ║
+║  │  │Manager           │  │                 │  │ ViewModel    │  │  ║
+║  │  │ • GraphHopper    │  │ • Balance       │  │ • Stopwatch  │  │  ║
+║  │  │ • OSM Data DL    │  │ • Emergency Fund│  │ • Cost Calc  │  │  ║
+║  │  │ • Haversine      │  │ • Deduction     │  │ • Charge End │  │  ║
 ║  │  └──────────────────┘  └─────────────────┘  └──────────────┘  │  ║
 ║  └─────────────────────────────────────────────────────────────────┘  ║
 ╚══════════════════════════════════════════════════════════════════════╝
@@ -183,7 +197,7 @@ OUTPUT: Map with charging station markers
 STEP-BY-STEP BACKEND FLOW:
 ═══════════════════════════
 
-STEP 1: App launches → EvMapApplication.onCreate()
+STEP 1: App launches → ChargeXApplication.onCreate()
         ├── Reads dark mode preference from PreferenceDataSource
         ├── Applies night mode via updateNightMode()
         ├── Schedules CleanupCacheWorker (daily cache cleanup)
@@ -449,6 +463,93 @@ STEP 9: User taps "Start Navigation"
 
 ---
 
+### WORKFLOW 3B: Offline In-App Navigation (No Internet)
+
+```
+INPUT: User taps "Navigate in ChargeX" when device is offline
+OUTPUT: Live turn-by-turn GPS tracking within the app
+
+STEP-BY-STEP BACKEND FLOW:
+═══════════════════════════
+
+STEP 1: NavigationFragment detects no internet
+        └── isNetworkAvailable() returns false
+        └── Button text changes to "Navigate in ChargeX"
+
+STEP 2: User taps "Navigate in ChargeX"
+        └── startInAppNavigation() is called
+        └── Requests high-frequency LocationUpdates (every 2s, 5m)
+
+STEP 3: GPS chip reports new location (lat, lng) → onLocationChanged()
+        ├── Update "You" marker on map to exact new GPS coordinates
+        ├── Calculate haversineDistanceKm(current_location, destination)
+        ├── Calculate bearing = calculateBearing(current, destination)
+        └── Compute direction string (e.g., 45° → "Northeast ↗")
+
+STEP 4: UI Updates Live
+        ├── tvNavStatus: "🧭 Head Northeast ↗ — 3.2 km remaining"
+        ├── tvDistance: "3.2 km"
+        ├── tvDuration: Estimated based on current GPS speed (or 25km/h default)
+        └── Map camera pans smoothly to follow user marker
+
+STEP 5: Arrival Detection
+        └── If distance < 0.1 km (100 meters):
+            └── Stop navigation, show "🎉 You have arrived!"
+```
+
+---
+
+### WORKFLOW 4: Offline Booking & Wallet Deduction
+
+```
+INPUT: User verifies QR code offline and starts a charging session
+OUTPUT: Timer runs, wallet balance decreases in real-time
+
+STEP-BY-STEP BACKEND FLOW:
+═══════════════════════════
+
+STEP 1: User scans a terminal QR code
+        └── BookingVerificationFragment decodes QR text → "CHARGE_STATION_123"
+
+STEP 2: Successful verification shows the Charging Timer Card
+        └── State changes to VerificationResult.Valid
+
+STEP 3: User taps "Start Charging"
+        └── VerificationViewModel.startCharging()
+        └── Launches an infinite coroutine while(true)
+
+STEP 4: Background Timer Loop (Every 1 Second)
+        ├── elapsedSeconds++
+        ├── activeCost = (elapsedSeconds / 60.0) * WalletManager.getChargeRatePerMinute()
+        │   └── Rate = ₹0.83/min (approx ₹50/hour)
+        └── Emits new values to StateFlows (elapsedSeconds, sessionCost)
+
+STEP 5: UI updates live
+        ├── BookingVerificationFragment observes StateFlows
+        ├── tvTimerDisplay shows "00:05:23"
+        └── tvRunningCost shows "₹4.48"
+
+STEP 6: User taps "Stop Charging"
+        └── VerificationViewModel.stopCharging()
+        └── Calls WalletManager.deductFunds(cost, isOnline=false)
+
+STEP 7: WalletManager Deduction Logic (Offline Case)
+        ├── IF Wallet Balance >= Cost (e.g., ₹500 >= ₹15):
+        │   └── Deduct from Wallet locally: New Balance = ₹485
+        │
+        ├── IF Wallet < Cost but > 0 (e.g., Wallet=₹10, Cost=₹15):
+        │   ├── Empty wallet to ₹0
+        │   └── Deduct remaining ₹5 from Emergency Fund
+        │
+        └── IF Wallet = ₹0:
+            └── Deduct entirely from Emergency Fund (if available)
+
+STEP 8: Session Ends
+        └── Shows final summary string: "Session ended. Time: 18m 04s, Cost: ₹15.00"
+```
+
+---
+
 ### WORKFLOW 4: Station Detail & Favorites
 
 ```
@@ -505,12 +606,18 @@ STEP 3: User taps ⭐ Favorite button
 | | `insertFavorite()` | Saves station to Room DB favorites table | MapFragment |
 | | `deleteFavorite()` | Removes station from favorites | MapFragment |
 | | `toggleFilters()` | Switches between no filters / custom filters | Filter button |
+| **VerificationViewModel** | `startCharging()` | Starts 1-second interval timer + calculated cost | BookingVerificationFragment |
+| | `stopCharging()` | Stops timer and commits final deduction via WalletManager | BookingVerificationFragment |
+| | `hasSufficientFunds()` | Checks if user has > ₹0 in wallet to initiate charge | BookingVerificationFragment |
+| **WalletManager** | `deductFunds()` | Core accounting: deducts from wallet → emergency fund (offline) | VerificationViewModel |
+| | `addFunds()` | Top up wallet balance | WalletFragment |
+| | `getWalletBalance()` | Returns current user balance | UI |
 | **RangeCalculator** | `calculateRange()` | Simplified range: vehicle + battery% + AC + temp + mode → km | VehicleInputFragment |
 | | `calculateEnergyConsumption()` | Physics-based: mass + drag + frontal area + AC → energy in kWh | isRouteFeasible |
 | | `isRouteFeasible()` | Full feasibility check: returns status, arrival %, energy breakdown | NavigationFragment |
 | | `isStationReachable()` | Can user reach a station? (includes 10% safety margin) | MarkerUtils |
 | | `remainingBatteryPercent()` | What % battery left after driving X km? | Detail screen |
-| **RouteService** | `getRoute()` | Orchestrator: tries Google first, falls back to OSRM | NavigationFragment |
+| **RouteService** | `getRoute()` | Orchestrator: Google → OSRM → GraphHopper → Haversine | NavigationFragment |
 | | `getGoogleRoute()` | HTTP call to Google Directions API, decodes polyline5 | getRoute |
 | | `getOsrmRoute()` | HTTP call to OSRM API, decodes polyline6 | getRoute |
 | | `decodePolyline5()` | Encoded string → GPS coordinates (÷ 100,000) | getGoogleRoute |
@@ -527,6 +634,10 @@ STEP 3: User taps ⭐ Favorite button
 | **OpenChargeMapApiWrapper** | `getChargepoints()` | IMPLEMENTATION: calls OCM API, converts to app models | MapViewModel |
 | | `postprocessResult()` | Apply local filters OCM API doesn't support | getChargepoints |
 | | `convertFiltersToSQL()` | Converts app filters → SQL WHERE clause for local DB | MapViewModel |
+| **OfflineRouteManager** | `initialize()` | Loads/creates GraphHopper graph from downloaded Map data | MapsActivity |
+| | `downloadOsmData()` | Background download of India OSM PBF file (~1.2GB) | Download Settings |
+| | `getGraphHopperRoute()` | Generates full road-following DecodedRoute entirely offline | RouteService |
+| | `getHaversineRoute()` | High-speed straight line fallback estimate if GH fails | RouteService |
 | **VehicleProfile** | `findById(id)` | Find a vehicle by its unique ID string | Saved selection |
 | | `groupedByManufacturer()` | Group 24 vehicles by brand for dropdown display | VehicleInputFragment |
 | **PreferenceDataSource** | `dataSource` (property) | Which API to use: "openchargemap" | MapViewModel |
@@ -535,6 +646,7 @@ STEP 3: User taps ⭐ Favorite button
 | **Room Database** | `ChargeLocationsDao.insert()` | Cache stations locally in SQLite | OpenChargeMapApi |
 | | `FavoritesDao.getAllFavorites()` | Get all favorited stations (returns LiveData) | MapViewModel |
 | | `CleanupCacheWorker` | Delete old cached data (runs daily in background) | WorkManager |
+| | `UpdateFullDownloadWorker` | Weekly background job — updates offline station database | WorkManager |
 
 ### Layer 4: UI Utilities
 
@@ -690,11 +802,13 @@ Base efficiency × 1.15 (highway) × 1.12 (extreme heat) × 1.10 (AC) × 1.15 (r
 
 ## 10. COMPLETE FILE MAP — WHAT EACH FILE DOES (ONE LINE)
 
-### Source Code Files (`app/src/main/java/net/vonforst/evmap/`)
+### Source Code Files (`app/src/main/java/com/chargex/india/`)
+
+### Source Code Files (`app/src/main/java/com/chargex/india/`)
 
 | File Path | One-Line Description |
 |-----------|---------------------|
-| `EvMapApplication.kt` | App startup: dark mode, language, background workers, crash reporting |
+| `ChargeXApplication.kt` | App startup: dark mode, language, background workers, crash reporting |
 | `MapsActivity.kt` | Single host activity: navigation, deep links, external app launching |
 | **Model Layer** | |
 | `model/VehicleProfile.kt` | 24 Indian EV models with battery specs, VehicleType enum, per-vehicle physics (mass, drag, frontal area), hasAC |
@@ -703,15 +817,22 @@ Base efficiency × 1.15 (highway) × 1.12 (extreme heat) × 1.10 (AC) × 1.15 (r
 | **API Layer** | |
 | `api/ChargepointApi.kt` | Interface — contract that all data sources must implement |
 | `api/openchargemap/OpenChargeMapApi.kt` | OpenChargeMap HTTP client + model converter + clustering |
-| `api/RouteService.kt` | Google Directions + OSRM routing with polyline decoding |
+| `api/RouteService.kt` | Google/OSRM (Online) → GraphHopper/Haversine (Offline) routing chain |
+| **Routing Layer** | |
+| `routing/OfflineRouteManager.kt` | GraphHopper configuration, OSM background downloads, offline graph build, Haversine fallback logic |
 | **Fragment Layer** | |
 | `fragment/MapFragment.kt` | Home screen — map, markers, search, filters, vehicle data forwarding, clearAll() lifecycle |
-| `fragment/NavigationFragment.kt` | Route preview — polyline, distance, duration, energy feasibility card, vehicle.hasAC |
+| `fragment/NavigationFragment.kt` | Contextual navigation (Online → Maps | Offline → In-app GPS tracking), distance/duration, energy card |
 | `fragment/VehicleInputFragment.kt` | Vehicle picker — dropdown, battery slider (5-100%), range calc, 3-value return |
 | `fragment/FilterFragment.kt` | Connector type and power level filter UI |
 | `fragment/OnboardingFragment.kt` | First-run welcome screen and data source selection |
+| `fragment/BookingVerificationFragment.kt` | Station terminal QR scanner, initiates charging session, stops charging |
 | **ViewModel Layer** | |
 | `viewmodel/MapViewModel.kt` | Map business logic — load stations, filters, favorites, map position |
+| `viewmodel/VerificationViewModel.kt` | Charging state machine — 1sec timer flow, cost compute flow, interaction with Wallet |
+| **Wallet Layer** | |
+| `wallet/WalletManager.kt` | Account balance tracker with offline Emergency Fund deduction capabilities |
+| `wallet/WalletFragment.kt` | UI for adding funds, showing emergency usage limits, and viewing transactions |
 | **UI Utilities** | |
 | `ui/MarkerUtils.kt` | Map marker manager — add/remove/hide pins, range filtering, clustering, clearAll() cleanup |
 | `ui/IconGenerators.kt` | Bitmap generation for colored station pin icons |

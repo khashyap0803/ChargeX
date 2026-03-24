@@ -125,20 +125,20 @@ android {
         }
     }
 
-    namespace = "net.vonforst.evmap"
+    namespace = "com.chargex.india"
 
     // add API keys from environment variable if not set in apikeys.xml
     applicationVariants.all {
-        var evmapKey =
+        var chargexKey =
             System.getenv("EVMAP_API_KEY") ?: project.findProperty("EVMAP_API_KEY")?.toString()
-        if (evmapKey == null && project.hasProperty("EVMAP_API_KEY_ENCRYPTED")) {
-            evmapKey = decode(
+        if (chargexKey == null && project.hasProperty("EVMAP_API_KEY_ENCRYPTED")) {
+            chargexKey = decode(
                 project.findProperty("EVMAP_API_KEY_ENCRYPTED").toString(),
                 "FmK.d,-f*p+rD+WK!eds"
             )
         }
-        if (evmapKey != null) {
-            resValue("string", "evmap_key", evmapKey)
+        if (chargexKey != null) {
+            resValue("string", "chargex_key", chargexKey)
         }
         val goingelectricKey =
             System.getenv("GOINGELECTRIC_API_KEY") ?: project.findProperty("GOINGELECTRIC_API_KEY")
@@ -338,6 +338,14 @@ dependencies {
 
     // ZXing QR code generation (for Offline Booking Verification)
     implementation("com.google.zxing:core:3.5.3")
+
+    // GraphHopper — Offline turn-by-turn routing using OpenStreetMap data
+    // reader-osm was merged into core since v9.x
+    implementation("com.graphhopper:graphhopper-core:9.1") {
+        exclude(group = "org.slf4j", module = "slf4j-api") // Use Android logging
+        exclude(group = "ch.qos.logback")  // Server-side logger not needed
+    }
+
     implementation("com.github.pengrad:mapscaleview:1.6.0")
     implementation("com.github.romandanylyk:PageIndicatorView:b1bad589b5")
     implementation("com.github.ev-map:locale-config-x:58b036abf4")
@@ -396,9 +404,7 @@ dependencies {
     implementation("ch.acra:acra-limiter:$acraVersion")
 
     // debug tools
-    debugImplementation("com.jakewharton.timber:timber:5.0.1")
-    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
-
+    debugImplementation("com.jakewharton.timber:timber:5.0.1")    // Removed leakcanary per user request
     // testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")

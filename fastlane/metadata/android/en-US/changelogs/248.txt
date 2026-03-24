@@ -1,5 +1,0 @@
-Improvements:
-- Price comparison: Reset charging range by tapping on title above it
-
-Bugfixes:
-- Fixed display errors

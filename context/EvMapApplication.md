@@ -1,13 +1,13 @@
-# EvMapApplication.kt
+# ChargeXApplication.kt
 
-> **File**: `app/src/main/java/net/vonforst/evmap/EvMapApplication.kt`  
+> **File**: `app/src/main/java/com/chargex/india/ChargeXApplication.kt`  
 > **Purpose**: The Application class — runs once when the app starts. Sets up crash reporting, background workers, and theming.
 
 ---
 
 ## What Is This File?
 
-`EvMapApplication` is the **first code that runs** when the ChargeX app launches. Before any screen is shown, this class:
+`ChargeXApplication` is the **first code that runs** when the ChargeX app launches. Before any screen is shown, this class:
 
 1. 🎨 Applies the user's dark/light mode preference
 2. 🌐 Sets the app language
@@ -22,7 +22,7 @@
 App Process Created
          │
          ▼
-EvMapApplication.onCreate()
+ChargeXApplication.onCreate()
          │
          ├── 1. Load user preferences (dark mode, language)
          │
@@ -99,7 +99,7 @@ initAcra {
 ## How It Connects to Other Files
 
 ```
-EvMapApplication.kt
+ChargeXApplication.kt
     │
     ├──▶ PreferenceDataSource.kt     — Reads dark mode, language, and other
     │                                  user preferences used across the app

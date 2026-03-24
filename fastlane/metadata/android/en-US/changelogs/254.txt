@@ -1,2 +1,0 @@
-Bugfixes:
-- Fixed realtime data for Tesla Superchargers

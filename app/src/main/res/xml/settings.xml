@@ -2,16 +2,16 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <Preference
-        android:fragment="net.vonforst.evmap.fragment.preference.UiSettingsFragment"
+        android:fragment="com.chargex.india.fragment.preference.UiSettingsFragment"
         android:title="@string/settings_ui"
         android:icon="@drawable/ic_settings_ui" />
     <Preference
-        android:fragment="net.vonforst.evmap.fragment.preference.DataSettingsFragment"
+        android:fragment="com.chargex.india.fragment.preference.DataSettingsFragment"
         android:title="@string/settings_data_sources"
         android:icon="@drawable/ic_settings_data_source" />
     <Preference
         android:key="developer_options"
-        android:fragment="net.vonforst.evmap.fragment.preference.DeveloperSettingsFragment"
+        android:fragment="com.chargex.india.fragment.preference.DeveloperSettingsFragment"
         android:title="@string/developer_options"
         android:icon="@drawable/ic_developer" />
 </PreferenceScreen>

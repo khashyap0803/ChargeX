@@ -1,6 +1,6 @@
 # Database.kt & DAOs
 
-> **File**: `app/src/main/java/net/vonforst/evmap/storage/Database.kt`  
+> **File**: `app/src/main/java/com/chargex/india/storage/Database.kt`  
 > **Purpose**: Room database setup — defines the SQLite schema, DAOs (Data Access Objects), migrations, and type converters.
 
 ---

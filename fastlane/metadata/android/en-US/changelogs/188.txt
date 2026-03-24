@@ -1,5 +1,0 @@
-Improvements:
-- Increased clustering in places with extremely high charger density
-
-Bugfixes:
-- Fixed crashes

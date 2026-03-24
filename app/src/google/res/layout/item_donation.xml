@@ -7,7 +7,7 @@
 
         <variable
             name="item"
-            type="net.vonforst.evmap.viewmodel.DonationItem" />
+            type="com.chargex.india.viewmodel.DonationItem" />
     </data>
 
     <androidx.cardview.widget.CardView

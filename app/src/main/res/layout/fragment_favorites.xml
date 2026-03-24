@@ -4,7 +4,7 @@
 
     <data>
 
-        <import type="net.vonforst.evmap.viewmodel.FavoritesViewModel" />
+        <import type="com.chargex.india.viewmodel.FavoritesViewModel" />
 
         <variable
             name="vm"

@@ -1,2 +1,0 @@
-Bugfixes:
-- some filter-dependent views were not correct anymore since 1.3.11

@@ -1,3 +1,0 @@
-Bugfixes:
-- Fixed error in caching algorithm when some filters are active
-- Fixed crashes

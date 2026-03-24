@@ -1,0 +1,266 @@
+package com.chargex.india.fragment
+
+import android.graphics.Canvas
+import android.os.Bundle
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import androidx.databinding.DataBindingUtil
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
+import androidx.navigation.ui.setupWithNavController
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.car2go.maps.model.LatLng
+import com.google.android.material.color.MaterialColors
+import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.transition.MaterialFadeThrough
+import com.chargex.india.MapsActivity
+import com.chargex.india.R
+import com.chargex.india.adapter.DataBindingAdapter
+import com.chargex.india.adapter.FavoritesAdapter
+import com.chargex.india.databinding.FragmentFavoritesBinding
+import com.chargex.india.databinding.ItemFavoriteBinding
+import com.chargex.india.location.FusionEngine
+import com.chargex.india.location.LocationEngine
+import com.chargex.india.model.FavoriteWithDetail
+import com.chargex.india.utils.checkAnyLocationPermission
+import com.chargex.india.viewmodel.FavoritesViewModel
+import com.chargex.india.viewmodel.viewModelFactory
+
+class FavoritesFragment : Fragment() {
+    private lateinit var binding: FragmentFavoritesBinding
+    private lateinit var locationEngine: LocationEngine
+    private var deleteSnackbar: Snackbar? = null
+    private lateinit var adapter: FavoritesAdapter
+
+    private val vm: FavoritesViewModel by viewModels(factoryProducer = {
+        viewModelFactory {
+            FavoritesViewModel(
+                requireActivity().application
+            )
+        }
+    })
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        locationEngine = FusionEngine(requireContext())
+
+        enterTransition = MaterialFadeThrough()
+        exitTransition = MaterialFadeThrough()
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        binding = DataBindingUtil.inflate(
+            inflater,
+            R.layout.fragment_favorites, container, false
+        )
+        binding.lifecycleOwner = viewLifecycleOwner
+        binding.vm = vm
+
+        ViewCompat.setOnApplyWindowInsetsListener(
+            binding.favsList
+        ) { v, insets ->
+            v.updatePadding(bottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom)
+            WindowInsetsCompat.CONSUMED
+        }
+
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // Workaround for AndroidX bug: https://github.com/material-components/material-components-android/issues/1984
+        view.setBackgroundColor(MaterialColors.getColor(view, android.R.attr.windowBackground))
+
+        binding.toolbar.setupWithNavController(
+            findNavController(),
+            (requireActivity() as MapsActivity).appBarConfiguration
+        )
+
+        adapter = FavoritesAdapter(onDelete = {
+            delete(it.fav)
+        }).apply {
+            onClickListener = {
+                findNavController().navigate(
+                    R.id.action_favs_to_map,
+                    MapFragmentArgs(
+                        chargerId = it.charger.id,
+                        latLng = LatLng(it.charger.coordinates.lat, it.charger.coordinates.lng)
+                    ).toBundle()
+                )
+            }
+        }
+        binding.favsList.apply {
+            adapter = this@FavoritesFragment.adapter
+            layoutManager =
+                LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
+            addItemDecoration(
+                DividerItemDecoration(
+                    context, LinearLayoutManager.VERTICAL
+                )
+            )
+        }
+        createTouchHelper().attachToRecyclerView(binding.favsList)
+
+        binding.swipeRefresh.setOnRefreshListener {
+            vm.reloadAvailability() {
+                binding.swipeRefresh.isRefreshing = false
+            }
+        }
+
+        vm.deletedFavorite.observe(viewLifecycleOwner) { fav ->
+            if (fav == null) {
+                deleteSnackbar?.dismiss()
+                return@observe
+            }
+            val snackbar = Snackbar.make(
+                requireView(),
+                getString(
+                    R.string.deleted_item,
+                    fav.charger.name
+                ),
+                Snackbar.LENGTH_LONG
+            ).setAction(R.string.undo) {
+                vm.undoDeletion()
+            }.addCallback(object : Snackbar.Callback() {
+                override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                    // if undo was not clicked, actually delete
+                    if (event == DISMISS_EVENT_TIMEOUT || event == DISMISS_EVENT_SWIPE) {
+                        vm.deletedFavorite.value = null
+                    }
+                }
+            })
+            deleteSnackbar = snackbar
+            snackbar.show()
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+
+        if (requireContext().checkAnyLocationPermission()) {
+            val location = locationEngine.getLastKnownLocation()
+            location?.let {
+                vm.location.value = LatLng(it.latitude, it.longitude)
+            }
+        }
+    }
+
+    fun delete(fav: FavoriteWithDetail) {
+        vm.deleteFavoriteWithUndo(fav)
+    }
+
+    private fun createTouchHelper(): ItemTouchHelper {
+        return ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            0,
+            ItemTouchHelper.RIGHT or ItemTouchHelper.LEFT
+        ) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                return false
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val fav = vm.favorites.value?.find { it.favorite.favoriteId == viewHolder.itemId }
+                fav?.let { delete(it) }
+            }
+
+            override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+                if (viewHolder != null && actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                    val binding =
+                        (viewHolder as DataBindingAdapter.ViewHolder<*>).binding as ItemFavoriteBinding
+                    getDefaultUIUtil().onSelected(binding.foreground)
+                } else {
+                    super.onSelectedChanged(viewHolder, actionState)
+                }
+            }
+
+            override fun onChildDrawOver(
+                c: Canvas, recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder, dX: Float, dY: Float,
+                actionState: Int, isCurrentlyActive: Boolean
+            ) {
+                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                    val binding =
+                        (viewHolder as DataBindingAdapter.ViewHolder<*>).binding as ItemFavoriteBinding
+                    getDefaultUIUtil().onDrawOver(
+                        c, recyclerView, binding.foreground, dX, dY,
+                        actionState, isCurrentlyActive
+                    )
+                    val lp = (binding.deleteIcon.layoutParams as FrameLayout.LayoutParams)
+                    lp.gravity = Gravity.CENTER_VERTICAL or if (dX > 0) {
+                        Gravity.START
+                    } else {
+                        Gravity.END
+                    }
+                    binding.deleteIcon.layoutParams = lp
+                } else {
+                    super.onChildDrawOver(
+                        c,
+                        recyclerView,
+                        viewHolder,
+                        dX,
+                        dY,
+                        actionState,
+                        isCurrentlyActive
+                    )
+                }
+            }
+
+            override fun clearView(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder
+            ) {
+                val binding =
+                    (viewHolder as DataBindingAdapter.ViewHolder<*>).binding as ItemFavoriteBinding
+                getDefaultUIUtil().clearView(binding.foreground)
+            }
+
+            override fun onChildDraw(
+                c: Canvas, recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder, dX: Float, dY: Float,
+                actionState: Int, isCurrentlyActive: Boolean
+            ) {
+                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                    val binding =
+                        (viewHolder as DataBindingAdapter.ViewHolder<*>).binding as ItemFavoriteBinding
+                    getDefaultUIUtil().onDraw(
+                        c, recyclerView, binding.foreground, dX, dY,
+                        actionState, isCurrentlyActive
+                    )
+                } else {
+                    super.onChildDraw(
+                        c,
+                        recyclerView,
+                        viewHolder,
+                        dX,
+                        dY,
+                        actionState,
+                        isCurrentlyActive
+                    )
+                }
+            }
+        })
+    }
+
+    override fun onResume() {
+        super.onResume()
+    }
+}

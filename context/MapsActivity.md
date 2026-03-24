@@ -1,6 +1,6 @@
 # MapsActivity.kt
 
-> **File**: `app/src/main/java/net/vonforst/evmap/MapsActivity.kt`  
+> **File**: `app/src/main/java/com/chargex/india/MapsActivity.kt`  
 > **Purpose**: The single main Activity that hosts all fragments. Handles navigation, deep linking, intent processing, and external app launching.
 
 ---

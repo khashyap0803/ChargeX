@@ -1,6 +1,0 @@
-Improvements:
-- New option to disable map rotation
-
-Bugfixes:
-- Fixed bug when filtering for many networks (GoingElectric)
-- Minor improvements for realtime data

@@ -1,2 +1,0 @@
-Fehler behoben:
-- verschiedene filterabhängige Anzeigen waren seit 1.3.11 nicht mehr korrekt

@@ -5,7 +5,7 @@
 
     <data>
 
-        <import type="net.vonforst.evmap.viewmodel.FilterProfilesViewModel" />
+        <import type="com.chargex.india.viewmodel.FilterProfilesViewModel" />
 
         <variable
             name="vm"

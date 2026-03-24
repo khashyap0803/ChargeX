@@ -1,6 +1,6 @@
 # ChargersModel.kt
 
-> **File**: `app/src/main/java/net/vonforst/evmap/model/ChargersModel.kt`  
+> **File**: `app/src/main/java/com/chargex/india/model/ChargersModel.kt`  
 > **Purpose**: Defines the core data models for everything related to charging stations — locations, connectors, addresses, costs, opening hours, and photos.
 
 ---

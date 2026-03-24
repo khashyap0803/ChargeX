@@ -1,6 +1,6 @@
 # VehicleProfile.kt
 
-> **File**: `app/src/main/java/net/vonforst/evmap/model/VehicleProfile.kt`  
+> **File**: `app/src/main/java/com/chargex/india/model/VehicleProfile.kt`  
 > **Purpose**: Contains a hardcoded database of popular Indian EV models with their battery, efficiency, and **physics specifications** for accurate energy and range calculations.
 
 ---

@@ -1,6 +1,6 @@
 # PreferenceDataSource.kt
 
-> **File**: `app/src/main/java/net/vonforst/evmap/storage/PreferenceDataSource.kt`  
+> **File**: `app/src/main/java/com/chargex/india/storage/PreferenceDataSource.kt`  
 > **Purpose**: Centralized access to all user preferences stored in SharedPreferences. A clean wrapper around Android's preference system.
 
 ---
@@ -64,7 +64,7 @@ fun SharedPreferences.getLatLng(key: String): LatLng? {
 ```
 PreferenceDataSource.kt
     │
-    ├──◀ EvMapApplication.kt   — Reads dark mode and language at startup
+    ├──◀ ChargeXApplication.kt   — Reads dark mode and language at startup
     │
     ├──◀ MapFragment.kt         — Reads/writes lastPosition, zoom, filter state.
     │                              (Note: vehicle data & range filter are stored

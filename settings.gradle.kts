@@ -1,2 +1,2 @@
-rootProject.name="EVMap"
+rootProject.name="ChargeX"
 include (":app")

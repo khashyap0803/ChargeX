@@ -1,6 +1,6 @@
 # MapViewModel.kt
 
-> **File**: `app/src/main/java/net/vonforst/evmap/viewmodel/MapViewModel.kt`  
+> **File**: `app/src/main/java/com/chargex/india/viewmodel/MapViewModel.kt`  
 > **Purpose**: Business logic for the main map screen — loads charging stations, manages filters, handles favorites, and tracks map position.
 
 ---

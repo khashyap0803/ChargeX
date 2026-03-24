@@ -5,9 +5,9 @@
 
     <data>
 
-        <import type="net.vonforst.evmap.viewmodel.DonateViewModel" />
+        <import type="com.chargex.india.viewmodel.DonateViewModel" />
 
-        <import type="net.vonforst.evmap.viewmodel.Status" />
+        <import type="com.chargex.india.viewmodel.Status" />
 
         <variable
             name="vm"

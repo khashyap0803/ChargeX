@@ -9,8 +9,8 @@
              (e.g. in the debug version). -->
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="net.vonforst.evmap"
-            android:targetClass="net.vonforst.evmap.MapsActivity">
+            android:targetPackage="com.chargex.india"
+            android:targetClass="com.chargex.india.MapsActivity">
             <extra
                 android:name="favorites"
                 android:value="true" />
@@ -23,7 +23,7 @@
     </shortcut>
     <capability android:name="actions.intent.GET_CHARGING_STATION">
         <intent>
-            <url-template android:value="net.vonforst.evmap://find_charger{?name,address,latitude,longitude}" />
+            <url-template android:value="com.chargex.india://find_charger{?name,address,latitude,longitude}" />
             <!-- Eg. name = "Googleplex" -->
             <parameter
                 android:name="chargingStation.name"

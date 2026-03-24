@@ -1,3 +1,0 @@
-Fehler behoben:
-- Fehler im Caching-Algorithmus im Zusammenspiel mit bestimmten Filtern behoben
-- Abstürze behoben

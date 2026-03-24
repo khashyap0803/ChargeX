@@ -17,7 +17,7 @@
             android:id="@+id/tvTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Offline Booking Verification"
+            android:text="Booking Verification"
             android:textSize="22sp"
             android:textStyle="bold"
             android:textColor="?android:attr/textColorPrimary"
@@ -31,6 +31,98 @@
             android:textSize="12sp"
             android:textColor="?android:attr/textColorSecondary"
             android:layout_marginBottom="16dp" />
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- OFFLINE CREDIT CARD -->
+        <!-- ═══════════════════════════════════════════ -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardOfflineCredit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardElevation="4dp"
+            app:cardCornerRadius="16dp"
+            app:cardBackgroundColor="#E3F2FD">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚡ Offline Emergency Credit"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#1565C0"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvCreditBalance"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="₹300"
+                            android:textSize="32sp"
+                            android:textStyle="bold"
+                            android:textColor="#0D47A1" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Post-paid Credit"
+                            android:textSize="12sp"
+                            android:textColor="#1565C0" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="end">
+
+                        <TextView
+                            android:id="@+id/tvChargingHours"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="~6.0 hrs"
+                            android:textSize="28sp"
+                            android:textStyle="bold"
+                            android:textColor="#2E7D32" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Est. Charging Time"
+                            android:textSize="12sp"
+                            android:textColor="#388E3C"
+                            android:gravity="end" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="(@ ₹50/hr avg L2)"
+                            android:textSize="10sp"
+                            android:textColor="#66BB6A"
+                            android:gravity="end" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Mode Toggle -->
         <com.google.android.material.card.MaterialCardView
@@ -61,7 +153,7 @@
         </com.google.android.material.card.MaterialCardView>
 
         <!-- ═══════════════════════════════════════════ -->
-        <!-- USER MODE: Generate Demo Booking -->
+        <!-- USER MODE: Generate Booking -->
         <!-- ═══════════════════════════════════════════ -->
         <LinearLayout
             android:id="@+id/layoutUserMode"
@@ -90,6 +182,26 @@
                     android:inputType="text" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Credit Amount Input -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:hint="Offline Credit (₹)"
+                app:boxBackgroundMode="outline"
+                app:boxCornerRadiusTopStart="8dp"
+                app:boxCornerRadiusTopEnd="8dp"
+                app:boxCornerRadiusBottomStart="8dp"
+                app:boxCornerRadiusBottomEnd="8dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etCreditAmount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="300"
+                    android:inputType="number" />
+            </com.google.android.material.textfield.TextInputLayout>
+
             <!-- Validity Duration -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
@@ -115,7 +227,7 @@
                 android:id="@+id/btnGenerateBooking"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="🔐 Generate Signed Booking"
+                android:text="🔐 Generate Signed Trust Token"
                 android:textAllCaps="false"
                 app:cornerRadius="8dp"
                 android:layout_marginBottom="16dp" />
@@ -140,7 +252,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Signed Booking QR Code"
+                        android:text="🔏 ECDSA-Signed Trust Token QR"
                         android:textStyle="bold"
                         android:textSize="14sp"
                         android:layout_marginBottom="12dp" />
@@ -179,9 +291,31 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Scan a booking QR code to verify its authenticity offline. No internet required."
+                android:text="Verify a booking QR code to authenticate offline. No internet required."
                 android:textSize="14sp"
                 android:textColor="?android:attr/textColorSecondary"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Camera Scan Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnScanQr"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="📷 Scan QR Code (Camera)"
+                android:textAllCaps="false"
+                app:cornerRadius="8dp"
+                app:icon="@drawable/ic_search"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Upload QR Image Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnUploadQrImage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🖼️ Upload QR Image"
+                android:textAllCaps="false"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                app:cornerRadius="8dp"
                 android:layout_marginBottom="16dp" />
 
             <!-- Manual Input -->
@@ -218,7 +352,7 @@
                 android:id="@+id/btnVerifyLastGenerated"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="✅ Verify Last Generated Booking"
+                android:text="✅ Verify Last Generated Token"
                 android:textAllCaps="false"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 app:cornerRadius="8dp"
@@ -318,6 +452,98 @@
                         android:textSize="12sp"
                         android:fontFamily="monospace" />
                 </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- CHARGING SESSION TIMER -->
+        <!-- ═══════════════════════════════════════════ -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardChargingTimer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone"
+            app:cardElevation="6dp"
+            app:cardCornerRadius="16dp"
+            app:cardBackgroundColor="#1A237E">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚡ Charging Session"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#9FA8DA"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Timer Display -->
+                <TextView
+                    android:id="@+id/tvTimerDisplay"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="00:00:00"
+                    android:textSize="48sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:fontFamily="monospace"
+                    android:gravity="center"
+                    android:layout_marginBottom="8dp" />
+
+                <!-- Running Cost -->
+                <TextView
+                    android:id="@+id/tvRunningCost"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="₹0.00"
+                    android:textSize="24sp"
+                    android:textColor="#FFD54F"
+                    android:gravity="center"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Start / Stop Buttons -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnStartCharging"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:text="▶ Start Charging"
+                        app:backgroundTint="#4CAF50" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnStopCharging"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="⏹ Stop"
+                        android:visibility="gone"
+                        app:backgroundTint="#F44336" />
+                </LinearLayout>
+
+                <!-- Session Summary -->
+                <TextView
+                    android:id="@+id/tvSessionSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="13sp"
+                    android:textColor="#C5CAE9"
+                    android:fontFamily="monospace"
+                    android:visibility="gone"
+                    android:layout_marginTop="12dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

@@ -123,5 +123,5 @@ build.gradle.kts
     │
     ├──▶ MapFragment.kt        — Uses map SDK based on build flavor
     │
-    └──▶ EvMapApplication.kt   — BuildConfig.DEBUG for crash reporting
+    └──▶ ChargeXApplication.kt   — BuildConfig.DEBUG for crash reporting
 ```

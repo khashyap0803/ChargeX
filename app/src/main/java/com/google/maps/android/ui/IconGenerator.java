@@ -27,7 +27,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import net.vonforst.evmap.R;
+import com.chargex.india.R;
 
 /**
  * IconGenerator generates icons that contain text (or custom content) within an info

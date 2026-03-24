@@ -1,7 +1,7 @@
-API keys required for testing EVMap
+API keys required for testing ChargeX
 ===================================
 
-EVMap uses multiple different data sources, most of which require an API key. These API keys need to
+ChargeX uses multiple different data sources, most of which require an API key. These API keys need to
 be put into the app in the form of a resource file called `apikeys.xml` under
 `app/src/main/res/values`, with the following content:
 
@@ -38,8 +38,8 @@ be put into the app in the form of a resource file called `apikeys.xml` under
    <string name="nobil_key" translatable="false">
       insert your nobil key here
    </string>
-   <string name="evmap_key" translatable="false">
-      insert your EVMap key here
+   <string name="chargex_key" translatable="false">
+      insert your ChargeX key here
    </string>
 </resources>
 ```
@@ -160,10 +160,10 @@ in German.
    - email address (*E-Mail Adresse*)
    - website (*Webseite*, optional)
    - phone number (*Telefonnummer*, optional)
-   - name of the app (*Name der App*): EVMap
-   - app website (*Webseite der App*): https://github.com/ev-map/EVMap
+   - name of the app (*Name der App*): ChargeX
+   - app website (*Webseite der App*): https://github.com/ev-map/ChargeX
    - description (*kurze Beschreibung der App*): please explain that you would like to contribute to
-     the development of EVMap and therefore need access to the GoingElectric.de API.
+     the development of ChargeX and therefore need access to the GoingElectric.de API.
    - Referrer (*Herkunft*): leave this field blank!
 6. When your access to the API is approved, you can access the
    [API console](https://www.goingelectric.de/stromtankstellen/api/ucp/) to retrieve your API key.
@@ -188,8 +188,8 @@ Then, wait for an an e-mail with your API key.
 1. [Sign up](https://openchargemap.org/site/loginprovider/register) for an account at OpenChargeMap
 2. Go to the [My Apps](https://openchargemap.org/site/profile/applications) page and click
    *Register an application*
-3. Enter the name of the app (EVMap) and website (https://github.com/ev-map/EVMap), and in the
-   description field describe that you would like to contribute to the development of EVMap and
+3. Enter the name of the app (ChargeX) and website (https://github.com/ev-map/ChargeX), and in the
+   description field describe that you would like to contribute to the development of ChargeX and
    therefore need access to the OpenChargeMap API. Do not tick the *List App in Public Showcase*
    box. Then, click *save*.
 4. Your API key will appear on the
@@ -211,7 +211,7 @@ Since February 2022, the Chargeprice API is no longer available for free to new 
 you can use their
 [staging API](https://github.com/chargeprice/chargeprice-api-docs/blob/master/test_the_api.md)
 for free to test the Chargeprice features. This is already
-[configured](https://github.com/ev-map/EVMap/blob/master/app/src/debug/res/values/donottranslate.xml)
+[configured](https://github.com/ev-map/ChargeX/blob/master/app/src/debug/res/values/donottranslate.xml)
 by default for the debug version of the app, so you can leave the `chargeprice_key` field in your
 new `app/src/main/res/values/apikeys.xml` file blank. Note that the staging API contains only a
 limited dataset, so it only outputs prices for certain charge point operators and payment plans (see
@@ -239,11 +239,11 @@ key and documentation.
 If you don't want to test this functionality, simply leave the API key blank.
 </details>
 
-### EVMap
+### ChargeX
 
-EVMap provides APIs to fetch Nobil real-time data.
+ChargeX provides APIs to fetch Nobil real-time data.
 
-Contact [EVMap](mailto:evmap@vonforst.net) to get an API key.
+Contact [ChargeX](mailto:chargex@vonforst.net) to get an API key.
 
 
 Crash reporting

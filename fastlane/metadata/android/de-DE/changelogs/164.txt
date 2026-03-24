@@ -1,2 +1,0 @@
-Fehler behoben:
-- Unnötige HTTP-Requests entfernt

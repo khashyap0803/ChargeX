@@ -1,6 +1,6 @@
 # ChargepointApi.kt
 
-> **File**: `app/src/main/java/net/vonforst/evmap/api/ChargepointApi.kt`  
+> **File**: `app/src/main/java/com/chargex/india/api/ChargepointApi.kt`  
 > **Purpose**: Defines the interface that all charging station data providers must implement. Acts as the contract between the app and any data source.
 
 ---

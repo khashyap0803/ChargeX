@@ -5,9 +5,9 @@
 
     <data>
 
-        <import type="net.vonforst.evmap.adapter.ConnectorDetailsAdapter.ConnectorDetails" />
+        <import type="com.chargex.india.adapter.ConnectorDetailsAdapter.ConnectorDetails" />
 
-        <import type="net.vonforst.evmap.ui.BindingAdaptersKt" />
+        <import type="com.chargex.india.ui.BindingAdaptersKt" />
         <import type="java.time.Instant" />
 
         <variable

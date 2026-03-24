@@ -36,7 +36,7 @@
     </queries>
 
     <application
-        android:name=".EvMapApplication"
+        android:name=".ChargeXApplication"
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup_rules"
         android:dataExtractionRules="@xml/backup_rules_api31"
@@ -92,7 +92,7 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
-                <data android:scheme="net.vonforst.evmap" />
+                <data android:scheme="com.chargex.india" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -154,7 +154,7 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
-                <data android:scheme="net.vonforst.evmap" />
+                <data android:scheme="com.chargex.india" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />

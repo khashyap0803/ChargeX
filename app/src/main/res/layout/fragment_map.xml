@@ -5,15 +5,15 @@
 
     <data>
 
-        <import type="net.vonforst.evmap.viewmodel.MapViewModel" />
+        <import type="com.chargex.india.viewmodel.MapViewModel" />
 
-        <import type="net.vonforst.evmap.viewmodel.Status" />
+        <import type="com.chargex.india.viewmodel.Status" />
 
         <import type="com.mahc.custombottomsheetbehavior.BottomSheetBehaviorGoogleMapsLike" />
 
         <variable
             name="vm"
-            type="net.vonforst.evmap.viewmodel.MapViewModel" />
+            type="com.chargex.india.viewmodel.MapViewModel" />
     </data>
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -82,7 +82,7 @@
                                 android:focusable="true"
                                 android:focusableInTouchMode="true">
 
-                                <net.vonforst.evmap.ui.AutocompleteTextViewWithSuggestions
+                                <com.chargex.india.ui.AutocompleteTextViewWithSuggestions
                                     android:id="@+id/search"
                                     android:layout_width="0dp"
                                     android:layout_weight="1"
@@ -244,6 +244,53 @@
             app:borderWidth="0dp"
             app:srcCompat="@drawable/ic_layers"
             app:layout_behavior="@string/hide_on_scroll_fab_behavior"
+            android:theme="@style/NoElevationOverlay" />
+
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            style="@style/Widget.Material3.ExtendedFloatingActionButton.Icon.Surface"
+            android:id="@+id/fab_offline_verify"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="@dimen/layers_fab_top_padding"
+            android:text="Offline Auth"
+            app:icon="@drawable/ic_verified"
+            app:tint="?colorControlNormal"
+            app:backgroundTint="?android:colorBackground"
+            android:theme="@style/NoElevationOverlay" />
+
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            style="@style/Widget.Material3.ExtendedFloatingActionButton.Icon.Surface"
+            android:id="@+id/fab_wallet"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_gravity="top|start"
+            android:layout_marginTop="@dimen/layers_fab_top_padding"
+            android:layout_marginStart="16dp"
+            android:text="Wallet"
+            app:icon="@drawable/ic_payment"
+            app:tint="?colorControlNormal"
+            app:backgroundTint="?android:colorBackground"
+            android:theme="@style/NoElevationOverlay" />
+
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            style="@style/Widget.Material3.ExtendedFloatingActionButton.Icon.Surface"
+            android:id="@+id/fab_download_stations"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_gravity="bottom|start"
+            android:layout_marginBottom="80dp"
+            android:layout_marginStart="16dp"
+            android:text="Download Stations"
+            app:icon="@drawable/ic_save"
+            app:tint="?colorControlNormal"
+            app:backgroundTint="?android:colorBackground"
             android:theme="@style/NoElevationOverlay" />
 
         <View

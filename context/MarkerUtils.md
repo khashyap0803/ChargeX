@@ -1,6 +1,6 @@
 # MarkerUtils.kt
 
-> **File**: `app/src/main/java/net/vonforst/evmap/ui/MarkerUtils.kt`  
+> **File**: `app/src/main/java/com/chargex/india/ui/MarkerUtils.kt`  
 > **Purpose**: Manages all map markers (charging station pins, clusters, search results) including range-based filtering and lifecycle cleanup.
 
 ---

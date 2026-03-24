@@ -1,5 +1,0 @@
-Verbesserungen:
-- Neue Übersetzung: Niederländisch
-
-Fehler behoben:
-- Abstürze behoben

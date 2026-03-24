@@ -161,7 +161,7 @@
     <string name="save_profile_enter_name">Enter the name of the filter profile:</string>
     <string name="filterprofile_name_not_unique">There is already a filter profile with that name</string>
     <string name="filterprofiles_empty_state">You have no filter profiles saved</string>
-    <string name="welcome_to_evmap">Welcome to ChargeX</string>
+    <string name="welcome_to_chargex">Welcome to ChargeX</string>
     <string name="welcome_1">Find EV charging stations across India</string>
     <string name="welcome_2_title">You\'ve got the power</string>
     <string name="welcome_2">Each charger\'s color corresponds to its max charging power</string>
@@ -389,7 +389,7 @@
     <string name="accessibility_by_appointment">By appointment</string>
     <string name="accessibility_residents">Residents</string>
     <string name="chargeprice_removal_2025_dialog_title">Sorry!</string>
-    <string name="chargeprice_removal_2025_dialog_detail">Costs for Chargeprice data access have risen sharply and can’t be covered by donations, so EVMap can no longer show this data directly. For now, this opens the Chargeprice website. An alternative solution is being developed, but it’ll take time and may start with limited features. Thanks for your patience and support!</string>
+    <string name="chargeprice_removal_2025_dialog_detail">Costs for Chargeprice data access have risen sharply and can’t be covered by donations, so ChargeX can no longer show this data directly. For now, this opens the Chargeprice website. An alternative solution is being developed, but it’ll take time and may start with limited features. Thanks for your patience and support!</string>
     <string name="auto_use_new_map_screen">New map screen (beta)</string>
     <string name="auto_confirm_delete_profile">Delete filter profile “%s“?</string>
     <string name="emergency_no_chargers">No charging stations are available within %.0f km of your current location.\n\nPlease try charging at a local shop/store or contact emergency services at 100.</string>

@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="net.vonforst.evmap.fragment.NavigationFragment">
+    tools:context="com.chargex.india.fragment.NavigationFragment">
 
     <!-- Map container -->
     <FrameLayout
@@ -225,6 +225,17 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Route Source Badge -->
+            <TextView
+                android:id="@+id/tvRouteSource"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textSize="12sp"
+                android:textColor="?android:textColorSecondary"
+                android:visibility="gone"
+                tools:text="📍 Offline route (Haversine estimate)" />
+
             <!-- Buttons -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnStartNavigation"
@@ -237,6 +248,18 @@
                 app:icon="@drawable/ic_navigation"
                 app:cornerRadius="12dp"
                 style="@style/Widget.Material3.Button" />
+
+            <!-- In-App Navigation Status -->
+            <TextView
+                android:id="@+id/tvNavStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textSize="11sp"
+                android:textColor="?android:textColorSecondary"
+                android:visibility="gone"
+                android:gravity="center"
+                tools:text="Following route in ChargeX..." />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 </FrameLayout>

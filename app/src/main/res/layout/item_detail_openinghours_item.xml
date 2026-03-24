@@ -11,7 +11,7 @@
 
         <variable
             name="hours"
-            type="net.vonforst.evmap.model.OpeningHoursDays" />
+            type="com.chargex.india.model.OpeningHoursDays" />
 
         <variable
             name="dayOfWeek"

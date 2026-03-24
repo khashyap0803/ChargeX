@@ -22,7 +22,8 @@ This directory contains detailed documentation for every important source file i
 |------|-------------|
 | [ChargepointApi.md](ChargepointApi.md) | Interface for all charging station data providers |
 | [OpenChargeMapApi.md](OpenChargeMapApi.md) | OpenChargeMap implementation — primary data source |
-| [RouteService.md](RouteService.md) | Routing engine — Google Directions + OSRM fallback |
+| [RouteService.md](RouteService.md) | Routing engine — TomTom API with OSRM, GraphHopper, and Haversine fallbacks |
+| [OfflineRouteManager.md](OfflineRouteManager.md) | Offline GraphHopper navigation using local OSM data |
 
 ### Fragment Layer (UI Screens)
 | File | Description |
@@ -30,6 +31,8 @@ This directory contains detailed documentation for every important source file i
 | [MapFragment.md](MapFragment.md) | Main map screen — markers, range filtering, **vehicle data forwarding**, `clearAll()` lifecycle cleanup |
 | [NavigationFragment.md](NavigationFragment.md) | In-app route display, navigation, and **energy feasibility card** with vehicle-aware AC handling |
 | [VehicleInputFragment.md](VehicleInputFragment.md) | Vehicle selection (24 models), battery slider (5-100%), and range calculation UI |
+| [BookingVerificationFragment.md](BookingVerificationFragment.md) | Offline charging authentication via dual-mode UI and ECDSA PKI tokens |
+| [WalletFragment.md](WalletFragment.md) | Offline top-up and balance context UI |
 
 ### ViewModel Layer
 | File | Description |
@@ -40,12 +43,22 @@ This directory contains detailed documentation for every important source file i
 | File | Description |
 |------|-------------|
 | [MarkerUtils.md](MarkerUtils.md) | Map marker management — icons, clustering, range filtering, **`clearAll()` for lifecycle cleanup** |
+| [FilterDocs.md](FilterDocs.md) | Dynamic filter UI and profile persistence via Room |
+
+### Secondary Integrations
+| File | Description |
+|------|-------------|
+| [AndroidAutoDocs.md](AndroidAutoDocs.md) | In-car dashboard `androidx.car.app` UI, navigation, and hardware sensor integration |
+| [AutocompleteDocs.md](AutocompleteDocs.md) | Location search abstraction using Mapbox SDK |
+| [SecondaryAPIsDocs.md](SecondaryAPIsDocs.md) | OpenStreetMap bulk downloading and live Tesla availability integration |
+| [SettingsAndOnboarding.md](SettingsAndOnboarding.md) | Initial FTUE setup and SharedPreferences configuration logic |
 
 ### Storage Layer
 | File | Description |
 |------|-------------|
 | [PreferenceDataSource.md](PreferenceDataSource.md) | User settings and preferences |
 | [Database.md](Database.md) | Room database — schema, DAOs, migrations |
+| [WalletAndTimerDocs.md](WalletAndTimerDocs.md) | Local encrypted ledger and drift-resistant charging timer logic |
 
 ### Build & Configuration
 | File | Description |
@@ -72,8 +85,8 @@ This directory contains detailed documentation for every important source file i
 │  └─────────────┘    └──────────────┘    └─────────────────┘  │
 │                                                               │
 │  MapFragment ─────── MapViewModel ────── ChargepointApi      │
-│  NavigationFrag ──── RouteService ────── Google Directions    │
-│       └── RangeCalculator.isRouteFeasible() + VehicleProfile │
+│  NavigationFrag ──── RouteService ────── TomTom API/GraphHopper │
+│       └── RangeCalculator.calculateEnergyRequired() + VehicleProfile │
 │  VehicleInputFrag ── RangeCalculator ─── VehicleProfile DB   │
 │  FilterFragment ──── FiltersModel ────── PreferenceDataSource│
 │                                                               │
@@ -94,5 +107,5 @@ This directory contains detailed documentation for every important source file i
 - **VehicleProfile**: Specs for an EV model — battery size, efficiency, **VehicleType** (SCOOTER/CAR/SUV), **physics params** (mass, drag, frontal area), **hasAC**
 - **RangeCalculator**: Estimates range using efficiency factors AND calculates energy using a **physics-based model** with per-vehicle parameters
 - **MarkerUtils**: Manages all the pins on the map, including hiding out-of-range ones and **clearing stale markers** via `clearAll()`
-- **RouteService**: Calculates driving routes using Google Maps API (with OSRM fallback)
-- **Energy Feasibility**: NavigationFragment shows arrival battery %, energy required/available, vehicle info, using `vehicle.hasAC` for AC handling
+- **RouteService**: Calculates driving routes using a 4-tier chain (TomTom, OSRM, GraphHopper, Haversine)
+- **Energy Feasibility**: NavigationFragment shows arrival battery %, energy required/available recursively adapting for traffic limits

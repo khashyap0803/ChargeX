@@ -14,7 +14,8 @@
 - Filter controls for connector types and power
 - Bottom sheet showing charger details
 - **FABs (floating buttons)**:
-  - 📥 **Download Stations**: Triggers OSM data download for GraphHopper offline navigation.
+  - 📥 **Download Stations**: Triggers region caching for offline navigation.
+  - 🛡️ **Offline Verify**: Opens `BookingVerificationFragment` to scan QR codes and authenticate charging offline.
   - 💰 **Wallet**: Opens `WalletFragment` to view balance and add funds.
   - 🔋 **Vehicle**: Opens `VehicleInputFragment` for range calculation.
   - 📍 **Location**: Centers map on user.
@@ -62,6 +63,7 @@
 |-------|------|---------|
 | `pendingRangeFilterKm` | `Float` | Range filter value from VehicleInputFragment. Applied in `onMapReady()` because savedStateHandle fires BEFORE the map is ready. |
 | `pendingUserLocation` | `LatLng?` | User's GPS location, cached so the range filter can use it even before the map's location engine fires. |
+| `pendingReachableBoundary` | `List<Pair<Double, Double>>?` | The TomTom Reachable Range polygon boundary used to accurately filter out unreachable stations based on real road distance. |
 | `pendingVehicleId` | `String` | Selected vehicle ID (e.g., `"ather_450x"`), forwarded to NavigationFragment when user taps Directions. |
 | `pendingBatteryPercent` | `Float` | Selected battery %, forwarded to NavigationFragment for energy feasibility display. |
 

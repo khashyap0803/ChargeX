@@ -40,14 +40,18 @@ The app has two flavor dimensions:
 API keys are stored in `gradle.properties` (not checked into Git) and injected as Android string resources:
 
 ```kotlin
-// gradle.properties:
-GOOGLE_MAPS_API_KEY=AIzaSy...
-MAPBOX_API_KEY=pk.eyJ...
+// API keys can be loaded from environment variables or gradle.properties
+// build.gradle.kts injects them as Android string resources:
 
-// build.gradle.kts injects them:
-buildConfigField("String", "MAPBOX_API_KEY", "\"${mapboxKey}\"")
-resValue("string", "google_maps_key", googleMapsKey)        // google flavor only
-resValue("string", "google_directions_key", googleMapsKey)   // ALL flavors
+val chargexKey = project.findProperty("EVMAP_API_KEY")?.toString()
+if (chargexKey != null) {
+    resValue("string", "chargex_key", chargexKey)
+}
+
+val googleMapsKey = project.findProperty("GOOGLE_MAPS_API_KEY")?.toString()
+if (googleMapsKey != null) {
+    resValue("string", "google_directions_key", googleMapsKey)   // ALL flavors
+}
 ```
 
 ### Why Two Google Keys?
@@ -87,8 +91,9 @@ dependencies {
     implementation("com.github.bumptech.glide:glide")     // Image loading
 
     // Crash Reporting
-    implementation("ch.acra:acra-http")
-    implementation("ch.acra:acra-dialog")
+    implementation("ch.acra:acra-http:$acraVersion")
+    implementation("ch.acra:acra-dialog:$acraVersion")
+    implementation("ch.acra:acra-limiter:$acraVersion")
 }
 ```
 
@@ -98,14 +103,14 @@ dependencies {
 
 ```kotlin
 android {
-    compileSdk = 35
-    minSdk = 26          // Android 8.0+
-    targetSdk = 35       // Android 15
+    compileSdk = 36
+    minSdk = 23          // Android 6.0+
+    targetSdk = 36       // Android 15
 }
 ```
 
-- **minSdk 26**: Supports Android 8.0 and above (covers ~95% of Indian phones)
-- **compileSdk 35**: Uses the latest APIs for building
+- **minSdk 23**: Supports Android 6.0 and above.
+- **compileSdk 36**: Uses the latest APIs for building.
 
 ---
 

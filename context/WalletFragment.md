@@ -7,14 +7,30 @@
 
 ## What Is This File?
 
-The `WalletFragment` is a newly added screen accessible from the main map via the `💰 Wallet` Floating Action Button (FAB). Because the core ChargeX experience relies on **Wallet-First deductions** for both online and offline charging sessions, users need clear visibility into their financial status before traveling out of cellular range.
+The `WalletFragment` is a newly added screen accessible from the main map via the `💰 Wallet` Floating Action Button (FAB). Because the core ChargeX experience relies on **Wallet-First** deductions for both online and offline charging sessions, users need clear visibility into their financial status before traveling out of cellular range.
 
-### Core Features
-1. **Balance Display**: Shows the primary wallet balance synced directly from `WalletManager`.
-2. **Emergency Context**: Displays the remaining ₹500 offline emergency fund (e.g., "Emergency Fund: ₹485 / ₹500").
-3. **Quick Top-ups**: Provides one-tap buttons (+₹100, +₹500, +₹1000) to instantly add simulated funds to the wallet.
-4. **Custom Top-ups**: Allows text input for arbitrary deposit amounts.
-5. **Ledger Syncing**: Immediately refreshes UI text fields after a deposit transaction completes.
+## 💼 Key Functions & Behaviors
+
+### 🛠 UI Components
+
+1.  **Balance Display (`tvWalletBalance`)**
+    - Shows the user's current effective balance, synced directly from `WalletManager`.
+2.  **Emergency Context (`tvEmergencyFund`)**: Displays the remaining ₹500 offline emergency fund (e.g., "Emergency Fund: ₹485").
+
+### 3. Usage Statistics Observer
+
+```kotlin
+// Observes WalletManager for updates to usage statistics
+// 2. **Lifetime Total Spent (`tvTotalSpent`)**
+// 3. **Lifetime Charging Time (`tvTotalTime`)**
+// 4. **Estimated Charge Time Available (`tvEstChargeTime`)**
+```
+
+### ➕ Fund Management
+
+1.  **Quick Top-ups**: Provides one-tap buttons (+₹100, +₹500, +₹1000) to instantly add simulated funds to the wallet.
+2.  **Custom Top-ups**: Allows text input for arbitrary deposit amounts.
+3.  **Ledger Syncing**: Immediately refreshes UI text fields after a deposit transaction completes.
 
 ---
 
@@ -27,9 +43,12 @@ The `WalletFragment` is a newly added screen accessible from the main map via th
 │                                  │
 │       💰 Current Balance         │
 │           ₹ 500.00               │
+│   ≈ 10.0 hrs charging time       │
 │                                  │
-│  [ Emergency Fund: ₹500 / ₹500 ] │
-│  (Available only when offline)   │
+│   Emergency Fund: ₹500.00        │
+│                                  │
+│   Total Spent: ₹125.50           │
+│   Total Charging Time: 2h 30m    │
 │                                  │
 ├──────────────────────────────────┤
 │                                  │

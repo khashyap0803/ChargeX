@@ -64,7 +64,7 @@ The app follows **MVVM (Model-View-ViewModel)** methodology:
 | Database | Room (SQLite ORM) | Android's recommended local storage |
 | Navigation | Jetpack Navigation Component | Safe fragment transitions with arguments |
 | Async | Kotlin Coroutines | Lightweight threads for API calls |
-| Routing | Google Directions API + OSRM | Best routes for India + free fallback |
+| Routing | TomTom + OSRM + GraphHopper | Premium routing + free fallbacks + offline support |
 | Data Source | OpenChargeMap API | Most comprehensive EV station data for India |
 
 ---
@@ -106,9 +106,9 @@ The app follows **MVVM (Model-View-ViewModel)** methodology:
 ║  │  │  MapViewModel    │  │ RangeCalculator│  │ RouteService   │  │  ║
 ║  │  │                  │  │                │  │                │  │  ║
 ║  │  │ • Load stations  │  │ • Calculate    │  │ • Fetch route  │  │  ║
-║  │  │ • Apply filters  │  │   range from   │  │ • Google API   │  │  ║
-║  │  │ • Manage favs    │  │   battery %,   │  │   first, OSRM  │  │  ║
-║  │  │ • Track map pos  │  │   AC, temp,    │  │   fallback     │  │  ║
+║  │  │ • Apply filters  │  │   range from   │  │ • TomTom API   │  │  ║
+║  │  │ • Manage favs    │  │   battery %,   │  │   first, then  │  │  ║
+║  │  │ • Track map pos  │  │   AC, temp,    │  │   OSRM/Offline │  │  ║
 ║  │  │ • Load details   │  │   drive mode   │  │ • Decode route │  │  ║
 ║  │  └────────┬─────────┘  └────────────────┘  └────────┬───────┘  │  ║
 ║  │           │                                          │          │  ║
@@ -130,8 +130,9 @@ The app follows **MVVM (Model-View-ViewModel)** methodology:
 ║  │  │     │   MapApi       │    │                              │  │  ║
 ║  │  │     └── (wrapper)    │    │  PreferenceDataSource        │  │  ║
 ║  │  │                      │    │  (SharedPreferences wrapper) │  │  ║
-║  │  │  Google Directions   │    │                              │  │  ║
+║  │  │  TomTom Routing API  │    │                              │  │  ║
 ║  │  │  OSRM Routing API    │    │  VehicleProfile (hardcoded)  │  │  ║
+║  │  │  GraphHopper Core    │    │                              │  │  ║
 ║  │  └──────────────────────┘    └──────────────────────────────┘  │  ║
 ║  │                                                                 │  ║
 ║  └─────────────────────────────────────────────────────────────────┘  ║
@@ -418,14 +419,17 @@ STEP 5: fetchRoute() runs (inside a coroutine on IO thread)
 
 STEP 6: RouteService.getRoute() runs
         │
-        ├── TRY GOOGLE DIRECTIONS API FIRST:
-        │   getGoogleRoute(17.3850, 78.4867, 17.4399, 78.4983, apiKey)
-        │   ├── HTTP GET → maps.googleapis.com/maps/api/directions/json?...
+        ├── TRY TOMTOM API FIRST:
+        │   getTomTomRoute(17.3850, 78.4867, 17.4399, 78.4983, apiKey)
+        │   ├── HTTP GET → api.tomtom.com/routing/1/calculateRoute/...
         │   ├── decodePolyline5() → 156 GPS coordinate points
         │   └── Returns DecodedRoute(points, distanceMeters, durationSeconds)
         │
-        ├── IF GOOGLE FAILS → FALLBACK TO OSRM:
+        ├── IF TOMTOM FAILS → FALLBACK TO OSRM:
         │   getOsrmRoute() → decodePolyline6() → DecodedRoute
+        │
+        ├── IF OSRM FAILS → FALLBACK TO GRAPHHOPPER (Offline):
+        │   getOfflineRoute() → DecodedRoute
         │
         └── Returns the successful DecodedRoute to NavigationFragment
 
@@ -617,10 +621,10 @@ STEP 3: User taps ⭐ Favorite button
 | | `isRouteFeasible()` | Full feasibility check: returns status, arrival %, energy breakdown | NavigationFragment |
 | | `isStationReachable()` | Can user reach a station? (includes 10% safety margin) | MarkerUtils |
 | | `remainingBatteryPercent()` | What % battery left after driving X km? | Detail screen |
-| **RouteService** | `getRoute()` | Orchestrator: Google → OSRM → GraphHopper → Haversine | NavigationFragment |
-| | `getGoogleRoute()` | HTTP call to Google Directions API, decodes polyline5 | getRoute |
+| **RouteService** | `getRoute()` | Orchestrator: TomTom → OSRM → GraphHopper → Haversine | NavigationFragment |
+| | `getTomTomRoute()` | HTTP call to TomTom Routing API, decodes polyline5 | getRoute |
 | | `getOsrmRoute()` | HTTP call to OSRM API, decodes polyline6 | getRoute |
-| | `decodePolyline5()` | Encoded string → GPS coordinates (÷ 100,000) | getGoogleRoute |
+| | `decodePolyline5()` | Encoded string → GPS coordinates (÷ 100,000) | getTomTomRoute |
 | | `decodePolyline6()` | Encoded string → GPS coordinates (÷ 1,000,000) | getOsrmRoute |
 
 ### Layer 3: Data (API + Storage)
@@ -720,7 +724,7 @@ DecodedRoute (one calculated route):
 | API | Base URL | Purpose | Key Required? |
 |-----|----------|---------|--------------|
 | OpenChargeMap | `api.openchargemap.io/v3/` | Charging station data | Yes (free) |
-| Google Directions | `maps.googleapis.com/maps/api/directions/` | Route calculation | Yes (paid/free tier) |
+| TomTom Routing | `api.tomtom.com/routing/1/` | Primary route calculation | Yes (paid/free tier) |
 | OSRM | `router.project-osrm.org/route/v1/` | Backup route calculation | No (free) |
 | MapLibre / OpenStreetMap | Various tile servers | Map tiles (background map) | No (free) |
 | Jawg Maps | `tile.jawg.io/` | Premium map tiles | Yes (free tier) |

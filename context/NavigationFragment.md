@@ -89,7 +89,15 @@ When a user taps "Navigate" on a charging station, this fragment shows:
 This is the key function that connects the route data with the physics-based energy model:
 
 ```kotlin
-private fun displayEnergyFeasibility(distanceKm: Double, durationMinutes: Double) {
+private fun displayEnergyFeasibility(route: DecodedRoute) {
+    val distanceKm = route.distanceKm
+    val durationMinutes = route.durationMinutes
+    
+    // Calculate traffic severity (e.g. 1.2x longer due to traffic)
+    val trafficMultiplier = if (route.durationInTrafficMinutes != null && route.durationMinutes > 0) {
+        maxOf(1.0, route.durationInTrafficMinutes!! / route.durationMinutes)
+    } else 1.0
+
     // 1. Read vehicle data from MapFragment's savedStateHandle
     val savedState = findNavController().previousBackStackEntry?.savedStateHandle
     val vehicleId = savedState?.get<String>("vehicle_id")
@@ -101,7 +109,7 @@ private fun displayEnergyFeasibility(distanceKm: Double, durationMinutes: Double
     // 3. Use vehicle's hasAC property (scooters = false, cars = true)
     val acOn = vehicle.hasAC
 
-    // 4. Calculate feasibility using physics model
+    // 4. Calculate feasibility using physics model with live traffic penalties
     val result = RangeCalculator.isRouteFeasible(
         vehicle = vehicle,
         batteryPercent = batteryPercent,
@@ -109,7 +117,8 @@ private fun displayEnergyFeasibility(distanceKm: Double, durationMinutes: Double
         routeDurationMinutes = durationMinutes,
         temperatureC = 35.0,
         acOn = acOn,           // ← Uses vehicle.hasAC, NOT hardcoded true
-        safetyMargin = 0.0     // ← Zero because calculateRange already has corrections
+        safetyMargin = 0.0,    // ← Zero because calculateRange already has corrections
+        trafficMultiplier = trafficMultiplier // ← Adds energy penalty for stop-and-go traffic
     )
 
     // 5. Display results
@@ -118,6 +127,7 @@ private fun displayEnergyFeasibility(distanceKm: Double, durationMinutes: Double
     binding.tvArrivalBattery.text = "Arrival Battery: ${result.arrivalBatteryPercent.toInt()}%"
     binding.tvEnergyRequired.text = "Energy Required: %.3f kWh".format(result.energyRequired)
     binding.tvEnergyAvailable.text = "Energy Available: %.3f kWh".format(result.energyAvailable)
+    binding.tvTrafficCondition.text = result.trafficFactor
 }
 ```
 

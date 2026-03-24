@@ -36,10 +36,10 @@ data class VehicleProfile(
     val batteryCapacityKwh: Double,      // Total battery size in kWh, e.g. 40.5
     val officialRangeKm: Double,         // ARAI/WLTP rated range in km, e.g. 437
     val efficiencyKwhPer100Km: Double,   // Energy consumption per 100 km, e.g. 12.5
-    val vehicleType: VehicleType,        // SCOOTER, CAR, or SUV
-    val curbWeightKg: Double,            // Vehicle weight without passengers, in kg
-    val frontalAreaM2: Double,           // Frontal cross-section area in m²
-    val dragCoefficient: Double          // Aerodynamic drag coefficient (Cd)
+    val vehicleType: VehicleType = VehicleType.CAR,
+    val curbWeightKg: Double = 1500.0,   // default for cars
+    val frontalAreaM2: Double = 2.3,     // default for cars
+    val dragCoefficient: Double = 0.30   // default for cars
 )
 ```
 

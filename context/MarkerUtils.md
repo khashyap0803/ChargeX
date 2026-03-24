@@ -23,12 +23,10 @@
 
 ```kotlin
 class MarkerManager(
-    private val map: AnyMap,                    // The map to draw on
-    private val lifecycle: LifecycleOwner,       // For coroutine scoping
-    private val chargerIconGenerator: ...,        // Creates marker bitmaps
-    private val clusterIconGenerator: ...,        // Creates cluster bitmaps
-    private val prefs: PreferenceDataSource,      // User preferences
-    private val mini: Boolean = false             // Small markers mode
+    val context: Context,
+    val map: AnyMap,                    // The map to draw on
+    val lifecycle: LifecycleOwner,       // For coroutine scoping
+    markerHeight: Int = 48
 )
 ```
 
@@ -45,6 +43,7 @@ class MarkerManager(
 | `searchResult` | `PlaceWithBounds?` | Place search result marker |
 | `rangeFilterKm` | `Float` | Range filter distance in km (0 = disabled) |
 | `userLocation` | `LatLng?` | User's current GPS position |
+| `reachableBoundary` | `List<Pair<Double, Double>>?` | Reachable boundary polygon from routing API |
 
 When you set any of these properties, the markers **automatically update** (via the setter calling `updateChargepoints()` or `updateChargerIcons()`).
 
@@ -88,13 +87,22 @@ isInRange() is called for EACH charging station:
 ### The `isInRange()` Function
 
 ```kotlin
-private fun isInRange(charger: ChargeLocation): Boolean {
-    if (rangeFilterKm <= 0 || userLocation == null) return true  // No filter = show all
-    val dist = distanceBetween(
+private fun isInRange(lat: Double, lng: Double): Boolean {
+    if (rangeFilterKm <= 0 || userLocation == null) return true
+
+    // Primary: use TomTom reachable polygon if available
+    val polygon = reachableBoundary
+    if (polygon != null && polygon.size >= 3) {
+        return isPointInPolygon(lat, lng, polygon)
+    }
+
+    // Fallback: Haversine × road correction factor
+    val haversineDist = distanceBetween(
         userLocation!!.latitude, userLocation!!.longitude,
-        charger.coordinates.lat, charger.coordinates.lng
-    ) / 1000.0  // Convert meters to km
-    return dist <= rangeFilterKm
+        lat, lng
+    ) / 1000.0
+    val estimatedRoadDist = haversineDist * 1.4 // ROAD_DISTANCE_FACTOR
+    return estimatedRoadDist <= rangeFilterKm
 }
 ```
 

@@ -26,12 +26,16 @@ LiveData is Android's observable data holder — whenever the data changes, the 
 |----------|------|---------|
 | `chargepoints` | `LiveData<Resource<List<ChargepointListItem>>>` | All visible charging stations |
 | `chargerSparse` | `MutableLiveData<ChargeLocation?>` | Currently selected station (summary) |
-| `chargerDetail` | `LiveData<Resource<ChargeLocation>>` | Detailed info for selected station |
+| `chargerDetails` | `LiveData<Resource<ChargeLocation>>` | Detailed info for selected station |
+| `charger` | `MediatorLiveData<Resource<ChargeLocation>>` | Merges sparse and detailed info |
 | `availability` | `LiveData<Resource<...>>` | Real-time availability data |
+| `teslaPricing` | `LiveData<Pricing?>` | Live pricing data for Tesla Superchargers |
 | `favorites` | `LiveData<List<FavoriteWithDetail>>` | User's favorited stations |
 | `filterStatus` | `MutableLiveData<Long>` | Which filter profile is active |
 | `mapPosition` | `MutableLiveData<MapPosition>` | Current map center and zoom |
 | `mapType` | `MutableLiveData<AnyMap.Type>` | Map style (normal, satellite) |
+| `bottomSheetState` | `MutableLiveData<Int>` | Bottom sheet UI state |
+| `searchResult` | `MutableLiveData<PlaceWithBounds>` | Selected search destination |
 
 ---
 
@@ -86,6 +90,9 @@ Switches between "no filters" and "custom filters" modes.
 
 ### `reloadAvailability()`
 Refreshes real-time connector availability for the selected station.
+
+### `downloadOfflineRegion(bounds: LatLngBounds)`
+Triggers a background fetch of all charging stations within a specific map region (at zoom level 14f) and caches their detailed information for offline use.
 
 ### `extendBounds(bounds: LatLngBounds)`
 Expands the visible map bounds by 1.5x to pre-load stations just outside the viewport (prevents markers popping in when scrolling).

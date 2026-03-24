@@ -32,9 +32,11 @@ MapsActivity.onCreate()
     │
     ├── Handle incoming intent
     │   ├── Geo URI (geo:lat,lng) → Navigate to that location on map
-    │   ├── Deep link URL → Open specific charger detail
+    │   ├── OCM Web URL (openchargemap.org) → Open specific charger detail
+    │   ├── Custom Scheme (com.chargex.india://find_charger) → Map search
     │   ├── EXTRA_CHARGER_ID → Open specific charger
-    │   └── EXTRA_FAVORITES → Open favorites screen
+    │   ├── EXTRA_FAVORITES → Open favorites list
+    │   └── EXTRA_DONATE → Open donate/about screen
     │
     └── Set up Navigation Drawer (side menu)
 ```
@@ -97,10 +99,12 @@ The app can be opened from external sources:
 
 | Source | Intent Data | Action |
 |--------|-------------|--------|
-| URL share | `chargex://charger/12345` | Opens charger #12345 |
+| OCM Web Link | `https://openchargemap.org/...?id=123` | Switches data source to OCM and opens charger #123 |
+| Custom Scheme | `com.chargex.india://find_charger?latitude=...&longitude=...&name=...` | Centers map on specific coordinate/name |
 | Geo URI | `geo:17.385,78.487` | Centers map on that location |
-| Notification | `EXTRA_CHARGER_ID = 12345` | Opens charger detail |
+| Notification/Widget | `EXTRA_CHARGER_ID = 12345` | Opens charger detail |
 | Widget | `EXTRA_FAVORITES = true` | Opens favorites list |
+| Menu/Widget | `EXTRA_DONATE = true` | Opens donate/about screen |
 
 ---
 

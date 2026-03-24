@@ -94,6 +94,23 @@ suspend fun fullDownload(): FullDownloadResult<T>
 
 Downloads the **entire** station database for offline use. This can take a long time.
 
+### Database Query Helpers
+
+```kotlin
+fun convertFiltersToSQL(filters: FilterValues, referenceData: ReferenceData): FiltersSQLQuery
+fun filteringInSQLRequiresDetails(filters: FilterValues): Boolean
+```
+
+Converts app-level filter selections into SQL `WHERE` clauses for querying the local cached database.
+
+### API Properties
+
+The interface also defines properties that describe the API's capabilities:
+- `name` & `id`: Identifiers for the API (e.g., "OpenChargeMap.org")
+- `cacheLimit`: Maximum duration data can be cached
+- `supportsOnlineQueries`: `true` if it supports live radius/bounds queries
+- `supportsFullDownload`: `true` if the entire database can be downloaded
+
 ---
 
 ## The `createApi()` Factory Function

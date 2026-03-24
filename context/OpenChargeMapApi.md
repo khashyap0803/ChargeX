@@ -125,11 +125,20 @@ Fetches connector types, operators, and status types from OCM. Cached locally.
 
 ```kotlin
 companion object {
-    fun create(apikey: String, baseurl: String, context: Context?): OpenChargeMapApi {
-        val client = OkHttpClient.Builder()
-            .addInterceptor(RateLimitInterceptor())  // Respect API rate limits
-            .cache(Cache(...))                        // Cache responses
-            .build()
+    fun create(
+        apikey: String,
+        baseurl: String = "https://api.openchargemap.io/v3/",
+        context: Context? = null
+    ): OpenChargeMapApi {
+        val client = OkHttpClient.Builder().apply {
+            addInterceptor { chain ->
+                // Add API key and handles HTTP 429 Too Many Requests
+                // with exponential backoff (up to 3 retries)
+                ...
+            }
+            if (context != null) cache(Cache(context.cacheDir, cacheSize))
+             // ... timeouts ...
+        }.build()
 
         return Retrofit.Builder()
             .baseUrl(baseurl)
@@ -152,8 +161,6 @@ OpenChargeMapApi.kt
     │
     ├──▶ ChargersModel.kt        — Converts OCM data to ChargeLocation models
     │
-    ├──▶ RateLimitInterceptor.kt  — Prevents exceeding OCM API rate limits
-    │
     ├──◀ MapViewModel.kt          — Calls the wrapper to load station data
     │
     └──▶ OCMReferenceDataDao.kt   — Caches reference data in Room database
@@ -167,6 +174,6 @@ OpenChargeMapApi.kt
 
 2. **Post-processing**: Some filters are applied locally (after API response) because OCM's API doesn't support all filter types.
 
-3. **Rate limiting**: Uses `RateLimitInterceptor` to respect OCM's API limits and avoid being blocked.
+3. **Inline Rate limiting/Backoff**: Uses an inline interceptor to implement exponential backoff on HTTP 429 errors.
 
 4. **Clustering at wrapper level**: Nearby stations are grouped into clusters based on zoom level, reducing the number of markers on the map.

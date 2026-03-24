@@ -27,21 +27,39 @@ ChargeLocation
     ├── dataSource: String
     ├── name: String
     ├── coordinates: Coordinate
-    ├── address: Address
+    ├── address: Address?
     ├── chargepoints: List<Chargepoint>
     ├── network: String?
-    ├── cost: Cost?
-    ├── openingHours: OpeningHours?
-    ├── photos: List<ChargerPhoto>?
+    ├── dataSourceUrl: String
+    ├── url: String?
+    ├── editUrl: String?
     ├── faultReport: FaultReport?
-    └── chargepriceData: ChargepriceData?
+    ├── verified: Boolean
+    ├── barrierFree: Boolean?
+    ├── operator: String?
+    ├── generalInformation: String?
+    ├── amenities: String?
+    ├── locationDescription: String?
+    ├── photos: List<ChargerPhoto>?
+    ├── chargecards: List<ChargeCardId>?
+    ├── accessibility: String?
+    ├── openinghours: OpeningHours?
+    ├── cost: Cost?
+    ├── license: String?
+    ├── chargepriceData: ChargepriceData?
+    ├── networkUrl: String?
+    ├── chargerUrl: String?
+    ├── timeRetrieved: Instant
+    └── isDetailed: Boolean
 
 Chargepoint
     ├── type: String         (e.g., "CCS", "Type 2", "CHAdeMO")
     ├── power: Double?       (kW)
     ├── count: Int           (number of identical sockets)
-    ├── voltage: Int?
-    └── current: Int?
+    ├── current: Double?
+    ├── voltage: Double?
+    ├── evseIds: List<String?>?
+    └── evseUIds: List<String?>?
 ```
 
 ---
@@ -51,33 +69,39 @@ Chargepoint
 A `ChargeLocation` represents one complete **charging site** (like a gas station). It might have multiple chargepoints (connectors/plugs).
 
 ```kotlin
-@Entity
+@Entity(primaryKeys = ["id", "dataSource"])
+@Parcelize
 data class ChargeLocation(
-    @PrimaryKey val id: Long,              // Unique ID from data source
-    val dataSource: String,                 // "openchargemap" or "openstreetmap"
-    val name: String,                       // Station name
-    @Embedded val coordinates: Coordinate,  // GPS position
-    @Embedded val address: Address?,        // Street address
-    
-    val chargepoints: List<Chargepoint>,    // Available connectors
-    val network: String?,                   // Network operator (e.g., "Tata Power")
-    val url: String?,                       // Link to more info
-    val editUrl: String?,                   // Link to edit on the data source
-    
-    @Embedded val cost: Cost?,              // Pricing info
-    val freecharging: Boolean?,             // Is it free?
-    val freeparking: Boolean?,              // Is parking free?
-    
-    val openingHours: OpeningHours?,        // When is it open?
-    val faultReport: FaultReport?,          // Any reported problems?
-    val photos: List<ChargerPhoto>?,        // Station photos
-    
-    @Embedded val chargepriceData: ChargepriceData?,
+    val id: Long,
+    val dataSource: String,
+    val name: String,
+    val coordinates: Coordinate,
+    @Embedded val address: Address?,
+    val chargepoints: List<Chargepoint>,
+    val network: String?,
+    val dataSourceUrl: String,  // URL to the data source
+    val url: String?,  // URL of this charger at the data source
+    val editUrl: String?,  // URL to edit this charger at the data source
+    @Embedded(prefix = "fault_report_") val faultReport: FaultReport?,
+    val verified: Boolean,
+    val barrierFree: Boolean?,
+    // only shown in details:
+    val operator: String?,
+    val generalInformation: String?,
+    val amenities: String?,
+    val locationDescription: String?,
+    val photos: List<ChargerPhoto>?,
+    val chargecards: List<ChargeCardId>?,
+    val accessibility: String?,
+    @Embedded val openinghours: OpeningHours?,
+    @Embedded val cost: Cost?,
     val license: String?,
-    
-    val timeRetrieved: Instant,             // When this data was fetched
-    val isDetailed: Boolean                 // Full details or summary?
-)
+    @Embedded(prefix = "chargeprice") val chargepriceData: ChargepriceData?,
+    val networkUrl: String?,  // Website of the network
+    val chargerUrl: String?,  // Website for this specific charging site. Might be an ad-hoc payment page.
+    val timeRetrieved: Instant,
+    val isDetailed: Boolean
+) : ChargepointListItem(), Equatable, Parcelable
 ```
 
 ### Key Methods:
@@ -95,13 +119,17 @@ data class ChargeLocation(
 A `Chargepoint` is a single type of plug/socket at a station:
 
 ```kotlin
+@Parcelize
+@JsonClass(generateAdapter = true)
 data class Chargepoint(
     val type: String,          // "CCS", "Type 2", "CHAdeMO", etc.
     val power: Double?,        // Power in kW (e.g., 50.0, 22.0)
     val count: Int,            // How many of this type (e.g., 2)
-    val voltage: Int?,         // Voltage (e.g., 400V)
-    val current: Int?          // Amperage (e.g., 125A)
-)
+    val current: Double? = null, // Max current in A
+    val voltage: Double? = null, // Max voltage in V
+    val evseIds: List<String?>? = null,
+    val evseUIds: List<String?>? = null
+) : Equatable, Parcelable
 ```
 
 **Example**: A station might have:

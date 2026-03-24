@@ -112,7 +112,7 @@ The app then calculates their estimated range and (optionally) applies it as a f
 
 ### `setupButtons()`
 - **Apply Filter**: Calculates range, passes `range_filter_km`, `vehicle_id`, and `battery_percent` back to MapFragment via `savedStateHandle`
-- **Clear Filter**: Passes `range_filter_km = -1` to indicate "no filter"
+- **Clear Filter**: Passes `range_filter_km = -1f`, `vehicle_id = ""`, and `battery_percent = -1f` to indicate "no filter"
 
 ### `updateRange()`
 Core calculation function called whenever any input changes:
@@ -129,6 +129,13 @@ private fun updateRange() {
     )
 
     binding.tvEstimatedRange.text = "%.0f km".format(rangeKm)
+    
+    val conditions = buildString {
+        append("${batteryPercent.toInt()}% battery")
+        append(" • ${drivingMode.replaceFirstChar { it.uppercase() }}")
+        if (acOn) append(" • AC on")
+    }
+    binding.tvRangeConditions.text = conditions
 }
 ```
 

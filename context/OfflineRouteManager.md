@@ -68,19 +68,19 @@ implementation("com.graphhopper:graphhopper-core:9.1") {
 ### Fallback Logic
 - `getHaversineRoute(originLat, originLng, destLat, destLng): DecodedRoute`
   If GraphHopper fails (usually because the user hasn't downloaded the 1.2GB map file yet), this function provides a hard fallback.
-  It generates a perfectly straight line containing exactly 2 points (Origin → Destination).
+  It generates a straight line divided into **10 to 100 points** to ensure the polyline renders smoothly across the map.
   
-  **Haversine Math Used:**
-  The distance is computed using the Haversine formula, which accounts for the spherical shape of the Earth:
-  $$ a = \sin^2(\Delta\phi/2) + \cos(\phi_1) \cdot \cos(\phi_2) \cdot \sin^2(\Delta\lambda/2) $$
-  $$ c = 2 \cdot \text{atan2}(\sqrt{a}, \sqrt{1-a}) $$
-  $$ d = R \cdot c $$
-  Where:
-  - $\phi$ is latitude, $\lambda$ is longitude
-  - $R$ is Earth's radius (approx 6,371 km)
-  
+  **Estimating Road Distance (Winding Factor):**
+  Straight lines are shorter than actual roads. The algorithm applies a dynamic "winding factor" to estimate the real driving distance:
+  - `< 10 km` straight line → **1.5x** road distance
+  - `< 50 km` straight line → **1.35x** road distance
+  - `> 50 km` straight line → **1.2x** road distance
+
   **Estimating Duration without Roads:**
-  Because a straight line over water or through buildings is impossible to drive, the algorithm assumes an arbitrary average speed of **30 km/h** to estimate how long the trip will take.
+  Because a straight line over water or through buildings is impossible to drive, the algorithm applies a sliding average speed based on distance:
+  - `< 10 km`: **20 km/h** expected (city traffic)
+  - `< 50 km`: **35 km/h** expected
+  - `> 50 km`: **50 km/h** expected (highway speeds)
 
 ---
 
@@ -88,7 +88,7 @@ implementation("com.graphhopper:graphhopper-core:9.1") {
 
 The `OfflineRouteManager` does not stand alone. It is called by `RouteService.kt` as steps 3 and 4 of the resilient routing chain:
 
-1. **Google Directions API (Online)** — Highest quality, live traffic.
+1. **TomTom Routing API (Online)** — Highest quality, live traffic.
 2. **OSRM (Online)** — Free, open-source fallback.
 3. **GraphHopper (Offline)** — `OfflineRouteManager.getGraphHopperRoute()` — Real roads, no internet.
 4. **Haversine (Offline)** — `OfflineRouteManager.getHaversineRoute()` — Straight line, no internet, no data downloaded.

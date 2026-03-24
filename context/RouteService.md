@@ -1,17 +1,18 @@
 # RouteService.kt
 
 > **File**: `app/src/main/java/com/chargex/india/api/RouteService.kt`  
-> **Purpose**: Fetches driving routes between two locations, using Google Directions API (primary) with OSRM as fallback.
+> **Purpose**: Fetches driving routes between two locations and reachable range polygons, using TomTom APIs (primary) with OSRM, GraphHopper (offline), and Haversine as fallbacks.
 
 ---
 
 ## What Is This File?
 
-`RouteService` is a **singleton object** that calculates driving routes. When a user taps "Navigate" on a charging station, this service:
+`RouteService` is a **singleton object** that calculates driving routes and reachable ranges. When a user taps "Navigate" or needs range boundaries, this service:
 
-1. Calls **Google Directions API** first (best for India, real-time traffic)
-2. Falls back to **OSRM** (free, but less accurate for India) if Google fails
-3. Returns the route as a list of GPS coordinates + distance + duration
+1. Calls **TomTom Routing/Reachable Range API** first (highly accurate, traffic aware)
+2. Falls back to **OSRM** (free online routing) if TomTom fails
+3. Falls back to **GraphHopper** (on-device offline routing) if online fails
+4. Ultimate fallback: **Haversine formula** (straight line estimate)
 
 ---
 
@@ -33,14 +34,20 @@ data class DecodedRoute(
 ### API Response Classes
 
 ```
-Google Directions API Response:
-├── GoogleDirectionsResponse
-│   ├── status: String ("OK", "REQUEST_DENIED", etc.)
-│   └── routes: List<GoogleRoute>
-│       └── legs: List<GoogleLeg>
-│           ├── distance: GoogleTextValue (value in meters)
-│           ├── duration: GoogleTextValue (value in seconds)
-│           └── overviewPolyline: GooglePolyline (encoded path)
+```
+TomTom Routing API Response:
+├── TomTomRouteResponse
+│   └── routes: List<TomTomRoute>
+│       ├── summary: TomTomSummary (length, travelTimeInSeconds)
+│       └── legs: List<TomTomLeg>
+│           └── points: List<TomTomPoint>
+
+TomTom Reachable Range API Response:
+├── TomTomReachableRangeResponse
+│   └── reachableRange: TomTomReachableRange
+│       ├── center: TomTomPoint
+│       └── boundary: List<TomTomPoint>
+
 
 OSRM API Response:
 ├── OsrmRouteResponse
@@ -56,34 +63,34 @@ OSRM API Response:
 ## How Route Fetching Works
 
 ```
-User taps "Navigate" on a charging station
-         │
-         ▼
-NavigationFragment calls RouteService.getRoute(
-    originLat, originLng,      ← User's current GPS location
-    destLat, destLng,          ← Charging station location
-    googleApiKey               ← API key from gradle.properties
-)
+User requests a route (Origin to Destination)
          │
          ▼
 ┌──────────────────────────────────┐
-│ Is Google API key available?     │
-│                                  │
-│  YES → Try Google Directions API │
-│         │                        │
-│         ├─ SUCCESS → Return route│
-│         │                        │
-│         └─ FAILED → Fall to OSRM│
-│                                  │
-│  NO → Skip Google, go to OSRM   │
+│ Try TomTom Routing API           │
+│ SUCCESS → Return route           │
+│ FAILED  → Fall to OSRM           │
 └──────────────────────────────────┘
          │
          ▼
 ┌──────────────────────────────────┐
-│ Try OSRM (free, no key needed)   │
-│                                  │
-│  SUCCESS → Return route          │
-│  FAILED  → Return null (error)   │
+│ Try OSRM (Online fallback)       │
+│ SUCCESS → Apply 1.5x duration    │
+│           penalty & Return       │
+│ FAILED  → Fall to GraphHopper    │
+└──────────────────────────────────┘
+         │
+         ▼
+┌──────────────────────────────────┐
+│ Try GraphHopper (Offline)        │
+│ SUCCESS → Return route           │
+│ FAILED  → Fall to Haversine      │
+└──────────────────────────────────┘
+         │
+         ▼
+┌──────────────────────────────────┐
+│ Try Haversine Estimate           │
+│ SUCCESS → Return straight line   │
 └──────────────────────────────────┘
 ```
 
@@ -95,36 +102,39 @@ NavigationFragment calls RouteService.getRoute(
 suspend fun getRoute(
     originLat: Double, originLng: Double,    // Where you are
     destLat: Double, destLng: Double,        // Where you want to go
-    googleApiKey: String? = null              // API key (optional)
-): DecodedRoute?                              // Returns route or null
+    googleApiKey: String? = null             // Legacy arg, unused
+): DecodedRoute                              // Returns best route
 ```
 
 This function is `suspend` — it runs asynchronously (doesn't block the UI thread). It's called from a coroutine in `NavigationFragment`.
 
 ---
 
-## Google Directions API
+## TomTom Routing API
 
 ```kotlin
-private suspend fun getGoogleRoute(
+private suspend fun getTomTomRoute(
     originLat: Double, originLng: Double,
-    destLat: Double, destLng: Double,
-    apiKey: String
+    destLat: Double, destLng: Double
 ): DecodedRoute?
 ```
 
-- **URL**: `https://maps.googleapis.com/maps/api/directions/json`
-- **Parameters**: `origin`, `destination`, `mode=driving`, `region=in`
-- **`region=in`**: Tells Google to optimize for India (better route choices)
-- **Polyline encoding**: Google uses **polyline5** (precision 1e-5)
+- **URL**: `https://api.tomtom.com/routing/1/calculateRoute/`
+- **Why TomTom?**: Preferred over Google Maps due to billing constraints while still offering high accuracy and traffic awareness.
+- **Data Returned**: Direct Lat/Lng objects (no complex polyline decoding needed).
 
-### Error Handling:
-| Status | Meaning |
-|--------|---------|
-| `OK` | Route found successfully |
-| `REQUEST_DENIED` | API key invalid or Directions API not enabled |
-| `OVER_QUERY_LIMIT` | Too many requests, quota exceeded |
-| `ZERO_RESULTS` | No route exists between the two points |
+---
+
+## TomTom Reachable Range API
+
+```kotlin
+suspend fun getReachableRange(
+    originLat: Double, originLng: Double,
+    distanceBudgetMeters: Int
+): List<Pair<Double, Double>>?
+```
+
+Calculates an actual road-network polygon showing how far a vehicle can travel. Used by `MarkerManager` to filter out unreachable stations dynamically.
 
 ---
 
@@ -148,15 +158,8 @@ private suspend fun getOsrmRoute(
 
 ## Polyline Decoding
 
-Routes are transmitted as encoded strings to save bandwidth. The service includes two decoders:
-
-### `decodePolyline5()` — For Google (precision 1e-5)
-```
-Input:  "a~l~Fjk~uOwHJy@P"  (compact encoded string)
-Output: [(38.5, -120.2), (40.7, -120.95), ...]  (GPS coordinates)
-```
-
 ### `decodePolyline6()` — For OSRM (precision 1e-6)
+OSRM transmits route geometries as an encoded string. This decodes it back into GPS coordinates.
 Same algorithm but divides by 1,000,000 instead of 100,000 for higher precision.
 
 ---
@@ -166,14 +169,14 @@ Same algorithm but divides by 1,000,000 instead of 100,000 for higher precision.
 ```kotlin
 // Two Retrofit API clients, one for each service:
 
-Google: Retrofit → "https://maps.googleapis.com/"
+TomTom: Retrofit → "https://api.tomtom.com/"
   └── MoshiConverterFactory (for JSON parsing)
 
 OSRM: Retrofit → "https://router.project-osrm.org/"
   └── MoshiConverterFactory
 ```
 
-Both use **OkHttp** for HTTP requests and **Moshi** for JSON parsing.
+Both use **OkHttp** for HTTP requests and **Moshi** for JSON parsing. GraphHopper is accessed locally via `OfflineRouteManager`.
 
 ---
 
@@ -184,11 +187,11 @@ Every step is logged with tag `RouteService`:
 RouteService: ========== ROUTE REQUEST ==========
 RouteService: Origin: (17.3850, 78.4867)
 RouteService: Destination: (17.4399, 78.4983)
-RouteService: Google API key present: true
-RouteService: >>> Attempting Google Directions API...
-RouteService: [Google] Distance: 12.3 km (12300 m)
-RouteService: [Google] Duration: 25 mins (1500 s)
-RouteService: ✅ Google Directions API SUCCESS
+RouteService: >>> Attempting TomTom Routing API...
+RouteService: ✅ TomTom API SUCCESS
+RouteService:    Distance: 12.30 km
+RouteService:    Duration: 25.0 min
+RouteService:    Polyline points: 231
 ```
 
 ---
@@ -201,8 +204,7 @@ RouteService.kt
     ├──◀ NavigationFragment.kt  — Calls getRoute() when user opens
     │                              the navigation screen
     │
-    ├──◀ build.gradle.kts       — Provides the Google API key via
-    │                              gradle.properties
+    ├──◀ MarkerUtils.kt          — Calls getReachableRange() for polygon filter
     │
     └──▶ DecodedRoute            — Returned to NavigationFragment:
                                    ├── polyline points → drawn on map
@@ -217,12 +219,10 @@ RouteService.kt
 
 ## Key Design Decisions
 
-1. **Google first, OSRM fallback**: Google gives the best routes for India (toll roads, real-time traffic, correct one-ways). OSRM uses OpenStreetMap data which can be outdated in India.
+1. **TomTom first, 4-tier fallback**: Replaced Google Maps entirely to save costs, using a 4-layer fallback prioritizing online accuracy first, then offline accuracy (GraphHopper), and finally basic estimates (Haversine).
 
-2. **`region=in` parameter**: Explicitly tells Google to optimize for Indian routes.
+2. **OSRM Duration Penalty**: OSRM often underestimates travel time in Indian traffic, so a 1.5x penalty block (`realisticDurationSeconds = osrmRoute.durationSeconds * 1.5`) was added to compensate.
 
-3. **Separate polyline decoders**: Google and OSRM use different polyline precision (5 vs 6 decimal places). Using the wrong decoder would shift coordinates by ~11x.
+4. **Reachable Range Context**: Instead of just straight-line `isInRange()`, `RouteService` facilitates actual road-network range boundaries (`getReachableRange()`), significantly improving range feasibility projections.
 
-4. **Comprehensive error logging**: Every API call, response, and error is logged to help debug routing issues in production.
-
-5. **Route data feeds energy model**: `DecodedRoute.distanceKm` and `durationMinutes` are passed to `RangeCalculator.isRouteFeasible()` by `NavigationFragment`, which uses them for physics-based energy consumption calculation (average speed = distance/time → aerodynamic drag calculation).
+5. **Route data feeds energy model**: `DecodedRoute.distanceKm` and `durationMinutes` are passed to `RangeCalculator.isRouteFeasible()` by `NavigationFragment`, which uses them for physics-based energy consumption calculation.

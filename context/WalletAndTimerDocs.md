@@ -30,18 +30,22 @@ Once the user presses "Start Charging", the app spins up a background coroutine 
 
 ```kotlin
 private var timerJob: Job? = null
+private var chargingStartTime: Long = 0L
 
 fun startCharging() {
-    timerJob = viewModelScope.launch(Dispatchers.Default) {
-        while (isActive) { // Infinite loop that stops if canceled
-            delay(1000)    // Wait precisely 1 second
+    _isCharging.value = true
+    chargingStartTime = System.currentTimeMillis()
+
+    timerJob = viewModelScope.launch {
+        while (_isCharging.value) { // Infinite loop until _isCharging becomes false
+            delay(1000)    // Suspend for ~1 second
             
-            val newSeconds = _elapsedSeconds.value + 1
-            _elapsedSeconds.value = newSeconds // Expose to UI
+            // MATH: Using System time prevents timer drift if the coroutine is delayed
+            val elapsed = (System.currentTimeMillis() - chargingStartTime) / 1000
+            _elapsedSeconds.value = elapsed // Expose to UI
             
             // MATH: ₹50 / 60 mins = ₹0.83 per minute
-            // cost = (seconds / 60) * 0.83
-            val currentCost = (newSeconds / 60.0) * WalletManager.getChargeRatePerMinute()
+            val currentCost = (elapsed / 60.0) * WalletManager.getChargeRatePerMinute()
             _sessionCost.value = currentCost
         }
     }
@@ -63,9 +67,9 @@ If the user's wallet is completely empty (₹0) and they have consumed their eme
 The `WalletManager` is a singleton object object that enforces the payment hierarchy. It acts as the local source of truth for the user's funds, storing values persistently via Android `SharedPreferences`.
 
 ### The Financial Variables
-1. **Wallet Balance (`WALLET_BALANCE`)**: Hardcoded initial value. Simulates a prepaid account top-up.
-2. **Emergency Limit (`EMERGENCY_FUND_LIMIT`)**: Set to **₹500.0**. This is a safety margin for offline users.
-3. **Emergency Used (`EMERGENCY_USED`)**: Tracks how much of the ₹500 has been burned.
+1. **Wallet Balance (`wallet_balance`)**: The primary fund. Simulates a prepaid account top-up.
+2. **Emergency Fund (`emergency_fund`)**: Starts at **₹500.0**. This is a decremental safety margin for offline users. It tracks the remaining available emergency balance.
+3. **Total Spent / Charged Minutes (`total_spent`, `total_charged_minutes`)**: The ledger aggregates absolute expenditures and duration for history purposes.
 
 ### The Waterfall Deduction Logic
 
@@ -79,18 +83,17 @@ SCENARIO 1: Cost = ₹100, Wallet = ₹500
 ```
 
 ```
-SCENARIO 2: Cost = ₹100, Wallet = ₹20, Offline
+SCENARIO 2: Cost = ₹100, Wallet = ₹20, Offline, EmergencyFund = ₹500
 - Wallet covers part of it (Wallet becomes ₹0).
 - Remaining ₹80 must come from Emergency Fund.
-- Action: EmergencyUsed = EmergencyUsed + 80.
+- Action: EmergencyFund = 500 - 80 = 420.
 - Result: ✅ SUCCESS
 ```
 
 ```
-SCENARIO 3: Cost = ₹100, Wallet = ₹0, Offline, EmergencyUsed = ₹450
+SCENARIO 3: Cost = ₹100, Wallet = ₹0, Offline, EmergencyFund = ₹50
 - Wallet is empty.
-- Emergency Fund remaining = (500 - 450) = ₹50.
-- Cost (100) > Emergency Remaining (50).
+- Cost (100) > EmergencyFund (50).
 - Action: CANNOT DEDUCT. The charge exceeds allowed offline limits.
 - Result: ❌ FAILURE
 ```

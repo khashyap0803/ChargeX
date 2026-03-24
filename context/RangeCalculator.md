@@ -43,12 +43,14 @@ Uses stacking correction factors on the vehicle's base efficiency. Good for quic
 ```kotlin
 fun calculateEnergyConsumption(
     vehicle: VehicleProfile,
-    routeDistanceKm: Double,
-    routeDurationMinutes: Double,
+    distanceKm: Double,
+    avgSpeedKmh: Double,
     temperatureC: Double = 35.0,
     acOn: Boolean = true,
-    drivingMode: String = "mixed"
-): Double                          // Returns: energy consumed in kWh
+    gradientPercent: Double = 0.0,
+    trafficMultiplier: Double = 1.0,
+    isOffline: Boolean = false // Forces heuristic fallbacks
+): EnergyConsumptionResult         // Returns: detailed breakdown of energy consumed
 ```
 
 This is the **detailed physics model** that computes energy from first principles:
@@ -97,8 +99,9 @@ fun isRouteFeasible(
     routeDurationMinutes: Double,
     temperatureC: Double = 35.0,
     acOn: Boolean = true,
-    safetyMargin: Double = 0.0
-): FeasibilityResult
+    safetyMargin: Double = 0.10,
+    trafficMultiplier: Double = 1.0
+): RouteFeasibilityResult
 ```
 
 Returns a `FeasibilityResult` with:

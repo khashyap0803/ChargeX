@@ -26,35 +26,41 @@ val source = preferenceDataSource.dataSource
 | `dataSource` | `String` | `"openchargemap"` | Which charging station API to use |
 | `mapProvider` | `String` | `"maplibre"` | Map renderer (MapLibre/Google Maps) |
 | `language` | `String?` | `null` | App language override |
-| `darkmode` | `String` | `"system"` | Dark mode: "on", "off", "system" |
-| `lastPosition` | `LatLng?` | India center | Last map position for restore |
-| `lastZoom` | `Float` | `5.0` | Last map zoom level |
+| `darkmode` | `String` | `"default"` | Dark mode: "on", "off", "default" |
+| `currentMapLocation` | `LatLng` | India center | Last map position for restore |
+| `currentMapZoom` | `Float` | `3.5` | Last map zoom level |
 | `filterStatus` | `Long` | `FILTERS_DISABLED` | Active filter profile |
-| `searchCardMinimized` | `Boolean` | `false` | Search bar state |
-| `welcomed` | `Boolean` | `false` | Has onboarding been shown? |
-| `lastDownloadTimestamp` | `Instant?` | `null` | When data was last downloaded |
+| `welcomeDialogShown` | `Boolean` | `false` | Has onboarding been shown? |
+| `developerModeEnabled` | `Boolean` | `false` | Is Developer mode active? |
+| `predictionEnabled` | `Boolean` | `true` | Is wait-time prediction enabled? |
 
 ---
 
 ## How LatLng is Stored
 
-SharedPreferences can't store complex objects, so `LatLng` is stored as two separate float entries:
+SharedPreferences can't store complex objects, so `LatLng` is stored as two separate `Long` entries representing IEEE 754 double precision floats:
 
 ```kotlin
 // Saving
-fun Editor.putLatLng(key: String, value: LatLng?) {
-    putFloat("${key}_lat", value?.latitude?.toFloat() ?: 0f)
-    putFloat("${key}_lng", value?.longitude?.toFloat() ?: 0f)
+fun Editor.putLatLng(key: String, value: LatLng?): Editor {
+    if (value == null) {
+        remove("${key}_lat")
+        remove("${key}_lng")
+    } else {
+        putLong("${key}_lat", value.latitude.toBits())
+        putLong("${key}_lng", value.longitude.toBits())
+    }
+    return this
 }
 
 // Reading
-fun SharedPreferences.getLatLng(key: String): LatLng? {
-    if (!contains("${key}_lat")) return null
-    return LatLng(
-        getFloat("${key}_lat", 0f).toDouble(),
-        getFloat("${key}_lng", 0f).toDouble()
-    )
-}
+fun SharedPreferences.getLatLng(key: String): LatLng? =
+    if (containsLatLng(key)) {
+        LatLng(
+            Double.fromBits(getLong("${key}_lat", 0L)),
+            Double.fromBits(getLong("${key}_lng", 0L))
+        )
+    } else null
 ```
 
 ---

@@ -10,18 +10,40 @@
 When a user pulls up to a charging station, they need to authenticate and start charging. In remote areas without 4G/5G, this fragment provides the UI for the **Offline Booking Flow**.
 
 ### Core Features
-1. **QR Code Scanner**: Uses the ZXing (Zebra Crossing) library via camera preview to scan physical QR codes affixed to charging terminals.
-2. **State Management**: Reacts to `VerificationViewModel`'s state changes (Idle → Valid → Charging → Finished).
-3. **Live UI Updates**: Collects `StateFlow` streams from the ViewModel to display an active stopwatch (`00:14:32`) and a real-time rupee cost counter (`₹12.45`).
-4. **Fund Validation**: Hooks into `WalletManager` via the ViewModel to ensure the user has sufficient funds (Wallet or Emergency threshold) before allowing a charge to start.
+1. **Dual-Mode UI**:
+   - **User Mode**: Generates a digitally signed booking token (ECDSA secp256r1) and displays it as a QR code.
+   - **Station Mode**: Verifies a booking QR code offline, preventing tampering or replay attacks.
+2. **QR Code Scanner**: Uses the ZXing (Zebra Crossing) library via camera preview to scan physical QR codes affixed to charging terminals, plus a gallery fallback.
+3. **State Management**: Reacts to `VerificationViewModel`'s state changes (Idle → Valid → Charging → Finished).
+4. **Live Timer & Cost updates**: Collects `StateFlow` streams from the ViewModel to display an active stopwatch (`00:14:32`) and a real-time rupee cost counter (`₹12.45`) during an active charge.
 
 ---
 
 ## Screen Layouts (State Dependent)
 
-The fragment acts as a dynamic state machine, hiding/showing containers based on what phase of charging the user is in.
+The fragment uses a `TabLayout` to switch between User Mode and Station Mode.
 
-### State 1: Scanning (Idle)
+### 1. User Mode (Generation)
+```
+┌──────────────────────────────────┐
+│  [User Mode]      Station Mode   │
+├──────────────────────────────────┤
+│                                  │
+│  Credit Amount: [ ₹300      ]    │
+│  Validity Mins: [ 60        ]    │
+│                                  │
+│     [ Generate Trust Token ]     │
+│                                  │
+│        ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄          │
+│        █ ▄▄▄ █ ▄ █▄▄ ▄█          │
+│        █ ███ █ █ █ ▄▀ █          │
+│        █ ▀▀▀ █▄▄▀ ▄ ▄ █          │
+│        ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀          │
+│                                  │
+└──────────────────────────────────┘
+```
+
+### 2. Station Mode (Scanning/Idle)
 ```
 ┌──────────────────────────────────┐
 │      « Back to Station           │
@@ -36,7 +58,7 @@ The fragment acts as a dynamic state machine, hiding/showing containers based on
 └──────────────────────────────────┘
 ```
 
-### State 2: Verified & Ready (Valid)
+### 3. Station Mode (Verified & Ready)
 ```
 ┌──────────────────────────────────┐
 │      « Back to Station           │
@@ -52,7 +74,7 @@ The fragment acts as a dynamic state machine, hiding/showing containers based on
 └──────────────────────────────────┘
 ```
 
-### State 3: Active Session (Charging)
+### 4. Station Mode (Active Session)
 ```
 ┌──────────────────────────────────┐
 │      « Back to Station           │
@@ -119,29 +141,52 @@ The fragment uses Kotlin's `lifecycleScope.launch` with `repeatOnLifecycle(Lifec
 ```kotlin
 viewLifecycleOwner.lifecycleScope.launch {
     viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-        // Collect State Changes
+        // Collect QR payload for display in User Mode
         launch {
-            viewModel.verificationState.collect { state ->
-                handleStateChange(state)
+            viewModel.generatedQrPayload.collect { payload ->
+                if (payload != null) showQrCode(payload)
+            }
+        }
+        
+        // Collect verification results in Station Mode
+        launch {
+            viewModel.verificationResult.collect { result ->
+                if (result != null) {
+                    showVerificationResult(result)
+                    if (result is VerificationResult.Valid) {
+                        binding.cardChargingTimer.isVisible = true
+                    }
+                }
             }
         }
         
         // Collect Timer Updates
         launch {
-            viewModel.elapsedSeconds.collect { seconds ->
-                binding.tvTimerDisplay.text = formatSeconds(seconds)
+            viewModel.elapsedSeconds.collect { elapsed ->
+                binding.tvTimerDisplay.text = viewModel.formatElapsed(elapsed)
             }
         }
         
         // Collect Cost Updates
         launch {
             viewModel.sessionCost.collect { cost ->
-                binding.tvRunningCost.text = "₹ %.2f".format(cost)
+                binding.tvRunningCost.text = "₹${"%.2f".format(cost)}"
             }
         }
     }
 }
 ```
+
+---
+
+## PKI Workflow Demonstration
+
+This fragment implements a complete offline Public Key Infrastructure (PKI) workflow without needing a database:
+1. **Key Pair Generation**: Uses Android Keystore to generate ECDSA `secp256r1` keys securely on-device.
+2. **Ticket Signing**: `OfflineTicket` payload is serialized and signed with SHA256withECDSA using the private key.
+3. **QR Code Encoding**: The payload + Base64 signature is rendered into a visible QR code.
+4. **Offline Verification**: The simulated charging station reads the QR code and uses the public key to mathematically verify the signature.
+5. **Tamper Detection**: Even changing `TRST-` to `FAKE-` inside the QR payload instantly causes the signature math to fail, proving the data was modified.
 
 ---
 

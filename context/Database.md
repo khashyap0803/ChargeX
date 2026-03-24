@@ -64,6 +64,17 @@ AppDatabase
 │   ├── Table: ocm_country
 │   └── Table: ocm_operator
 │
+├── GEReferenceDataDao    — GoingElectric API lookup tables
+│   ├── Table: ge_chargecard
+│   ├── Table: ge_network
+│   └── Table: ge_plug
+│
+├── OSMReferenceDataDao   — OpenStreetMap API lookup tables
+│   └── Table: osm_network
+│
+├── StationOccupancyDao   — Station occupancy for wait time predictions
+│   └── Table: station_occupancy
+│
 └── RecentAutocompletePlaceDao — Recent search history
     └── Table: recentautocompleteplace
 ```
@@ -131,12 +142,26 @@ Room can't store complex types directly, so `TypeConverters.kt` converts them:
 When the schema changes between app versions, migrations update the database without losing data:
 
 ```kotlin
-val MIGRATION_1_2 = object : Migration(1, 2) {
+val MIGRATION_28_29 = object : Migration(28, 29) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE chargelocation ADD COLUMN network TEXT")
+        db.execSQL("CREATE TABLE IF NOT EXISTS `station_occupancy` ...")
     }
 }
 ```
+
+Includes complex operations like SpatiaLite `InitSpatialMetaData()` and geometry column recovery for bounding box queries.
+
+---
+
+## Database Backup
+
+A safe direct file-copy backup method is provided to prevent `CursorWindowAllocationException` when attempting to load the entire DB into memory.
+
+```kotlin
+suspend fun createBackup(context: Context, fileName: String)
+```
+
+By passing a `.db` filename, it uses `java.nio.channels.FileChannel` to directly transfer bytes from the application's database file to a destination backup file.
 
 ---
 

@@ -281,11 +281,14 @@ aboutLibraries {
     license {
         allowedLicenses = setOf(
             "Apache-2.0", "mit", "BSD-2-Clause", "BSD-3-Clause", "EPL-1.0",
-            "EPL-2.0",  // org.locationtech.jts:jts-core
-            "EDL-1.0",  // org.locationtech.jts:jts-core (Eclipse Distribution License)
-            "LGPL-3.0-only",  // org.openstreetmap.osmosis:osmosis-osm-binary
-            "LGPL-3.0",  // osmosis-osm-binary alternate identifier
-            "The BSD License",  // org.codehaus.woodstox:stax2-api
+            // exact display names from AboutLibraries plugin detection
+            "Eclipse Distribution License - v 1.0",  // jts-core
+            "Eclipse Public License, Version 2.0",    // jts-core
+            "BSD 3-Clause License",                   // osm-legal-default-speeds-jvm
+            "LGPL 3",                                 // osmosis-osm-binary
+            "The BSD License",                        // stax2-api
+            // SPDX alternates
+            "EPL-2.0", "EDL-1.0", "LGPL-3.0-only", "LGPL-3.0",
             "asdkl",  // Android SDK
             "Dual OpenSSL and SSLeay License",  // Android NDK OpenSSL
             "Google Maps Platform Terms of Service",  // Google Maps SDK

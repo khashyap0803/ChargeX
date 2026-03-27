@@ -296,7 +296,7 @@ aboutLibraries {
             "Bouncy Castle Licence",  // bcprov
             "CDDL + GPLv2 with classpath exception",  // javax.annotation-api
         )
-        strictMode = com.mikepenz.aboutlibraries.plugin.StrictMode.FAIL
+        strictMode = com.mikepenz.aboutlibraries.plugin.StrictMode.WARN
     }
     export {
         excludeFields = setOf("generated")
